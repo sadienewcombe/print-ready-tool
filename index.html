@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Print-Ready Mail List</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;color:#1a1a1a;background:#f9f9f7;min-height:100vh;padding:2rem 1rem}
+  .wrap{max-width:640px;margin:0 auto;background:#fff;border-radius:12px;border:0.5px solid #ddd;padding:2rem}
+  h1{font-size:20px;font-weight:600;margin-bottom:0.25rem}
+  .sub{font-size:13px;color:#666;margin-bottom:2rem}
+  .section{margin-bottom:1.5rem}
+  .label{font-size:12px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px}
+  .drop{border:1.5px dashed #ccc;border-radius:10px;padding:1.5rem;text-align:center;cursor:pointer;transition:background 0.15s;position:relative}
+  .drop:hover{background:#f5f5f3}
+  .drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+  .drop-icon{font-size:20px;margin-bottom:6px;color:#999}
+  .drop-label{font-size:13px;color:#666}
+  .drop-label strong{color:#1a1a1a;font-weight:500}
+  .file-set{background:#f5f5f3;border-radius:8px;padding:10px 14px;font-size:13px;display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+  .file-name{font-family:'SF Mono',Menlo,monospace;font-size:12px}
+  .clear-btn{background:none;border:none;cursor:pointer;color:#999;font-size:16px;padding:0 4px;line-height:1}
+  .clear-btn:hover{color:#1a1a1a}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .field{display:flex;flex-direction:column;gap:4px}
+  .field label{font-size:12px;color:#666}
+  .field input,.field select{font-size:13px;padding:7px 10px;border-radius:8px;border:0.5px solid #ccc;background:#fff;color:#1a1a1a;width:100%}
+  .field input:focus,.field select:focus{outline:none;border-color:#888}
+  .optional-tag{font-size:11px;color:#aaa;font-weight:400}
+  .divider{border:none;border-top:0.5px solid #e5e5e5;margin:1.5rem 0}
+  .run-btn{width:100%;padding:11px;font-size:14px;font-weight:500;border-radius:8px;border:none;background:#1a1a1a;color:#fff;cursor:pointer;transition:opacity 0.15s;margin-top:0.5rem}
+  .run-btn:hover{opacity:0.85}
+  .run-btn:disabled{opacity:0.35;cursor:not-allowed}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1.5rem}
+  .stat{background:#f5f5f3;border-radius:8px;padding:10px 12px}
+  .stat-n{font-size:22px;font-weight:600;font-family:'SF Mono',Menlo,monospace}
+  .stat-l{font-size:11px;color:#666;margin-top:2px}
+  .dl-btn{width:100%;padding:10px;font-size:13px;font-weight:500;border-radius:8px;border:0.5px solid #ccc;background:#fff;color:#1a1a1a;cursor:pointer;transition:background 0.15s;text-align:center}
+  .dl-btn:hover{background:#f5f5f3}
+  .error{background:#fff0f0;color:#c0392b;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:1rem;border:0.5px solid #f5c6c6}
+  .hidden{display:none}
+  .tier-hint{font-size:11px;color:#999;margin-top:4px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Print-ready mail list</h1>
+  <p class="sub">Dedupes, applies ask tiers, adds donor IDs, and exports a clean CSV.</p>
+
+  <div class="section">
+    <div class="label">Main list <span style="font-size:11px;color:#aaa;font-weight:400">(required)</span></div>
+    <div class="drop" id="main-drop">
+      <input type="file" accept=".csv" id="main-file">
+      <div class="drop-icon">↑</div>
+      <div class="drop-label"><strong>Upload CSV</strong> — must have first_name, last_name, address, city, state, zip, ask</div>
+    </div>
+    <div class="file-set hidden" id="main-set">
+      <span class="file-name" id="main-name"></span>
+      <button class="clear-btn" id="main-clear">×</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="label">Suppression list <span class="optional-tag">(optional)</span></div>
+    <div class="drop" id="sup-drop">
+      <input type="file" accept=".csv" id="sup-file">
+      <div class="drop-icon">↑</div>
+      <div class="drop-label"><strong>Upload suppression file</strong> — must have first_name, last_name, address, city, state</div>
+    </div>
+    <div class="file-set hidden" id="sup-set">
+      <span class="file-name" id="sup-name"></span>
+      <button class="clear-btn" id="sup-clear">×</button>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="section">
+    <div class="label">Configuration</div>
+    <div class="grid" style="margin-bottom:12px">
+      <div class="field">
+        <label>Source code</label>
+        <input type="text" id="source-code" placeholder="e.g. GASP26">
+      </div>
+      <div class="field">
+        <label>Donor ID prefix</label>
+        <input type="text" id="id-prefix" placeholder="e.g. GASP26">
+        <span class="tier-hint">Generates GASP26-00001, GASP26-00002…</span>
+      </div>
+    </div>
+    <div class="grid">
+      <div class="field">
+        <label>Max records</label>
+        <input type="number" id="max-rows" value="14000" min="1" step="1">
+      </div>
+      <div class="field">
+        <label>Sort output by</label>
+        <select id="sort-by">
+          <option value="ask3">ask3 (highest first)</option>
+          <option value="ask1">ask1 (highest first)</option>
+          <option value="none">no sort (keep original order)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="label">Ask tiers</div>
+    <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:4px">
+      <thead>
+        <tr style="border-bottom:1px solid #ccc">
+          <th style="text-align:left;padding:5px 8px;font-weight:600;color:#666">Original ask</th>
+          <th style="text-align:right;padding:5px 8px;font-weight:600;color:#666">ask1</th>
+          <th style="text-align:right;padding:5px 8px;font-weight:600;color:#666">ask2</th>
+          <th style="text-align:right;padding:5px 8px;font-weight:600;color:#666">ask3</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #eee">
+          <td style="padding:5px 8px;font-family:monospace">$0 – $99</td>
+          <td style="padding:5px 8px;text-align:right">$25</td>
+          <td style="padding:5px 8px;text-align:right">$50</td>
+          <td style="padding:5px 8px;text-align:right">$75</td>
+        </tr>
+        <tr style="border-bottom:1px solid #eee">
+          <td style="padding:5px 8px;font-family:monospace">$100 – $999</td>
+          <td style="padding:5px 8px;text-align:right">$100</td>
+          <td style="padding:5px 8px;text-align:right">$250</td>
+          <td style="padding:5px 8px;text-align:right">$500</td>
+        </tr>
+        <tr style="border-bottom:1px solid #eee">
+          <td style="padding:5px 8px;font-family:monospace">$1,000 – $3,499</td>
+          <td style="padding:5px 8px;text-align:right">$1,000</td>
+          <td style="padding:5px 8px;text-align:right">$1,500</td>
+          <td style="padding:5px 8px;text-align:right">$2,000</td>
+        </tr>
+        <tr>
+          <td style="padding:5px 8px;font-family:monospace">$3,500+</td>
+          <td style="padding:5px 8px;text-align:right">$3,500</td>
+          <td style="padding:5px 8px;text-align:right">$5,000</td>
+          <td style="padding:5px 8px;text-align:right">$7,000</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <hr class="divider">
+
+  <div class="error hidden" id="error-box"></div>
+
+  <div id="results" class="hidden">
+    <div class="stats">
+      <div class="stat"><div class="stat-n" id="s-input">—</div><div class="stat-l">input rows</div></div>
+      <div class="stat"><div class="stat-n" id="s-dupes">—</div><div class="stat-l">dupes removed</div></div>
+      <div class="stat"><div class="stat-n" id="s-sup">—</div><div class="stat-l">suppressed</div></div>
+      <div class="stat"><div class="stat-n" id="s-out">—</div><div class="stat-l">output rows</div></div>
+    </div>
+    <button class="dl-btn" id="dl-btn">Download print-ready CSV</button>
+  </div>
+
+  <button class="run-btn" id="run-btn" disabled>Process list</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script>
+let mainData = null, supData = null, outputRows = null;
+
+function parseCSV(file, cb) {
+  Papa.parse(file, {
+    header: true, skipEmptyLines: true,
+    transformHeader: h => h.trim().toLowerCase().replace(/\s+/g,'_'),
+    complete: r => cb(null, r.data),
+    error: e => cb(e)
+  });
+}
+
+function norm(s) { return (s||'').toString().trim().toUpperCase(); }
+function key1(r) { return norm(r.address)+'|'+norm(r.city)+'|'+norm(r.state); }
+function key2(r) {
+  const fn = norm(r.first_name||r.firstname||'');
+  const ln = norm(r.last_name||r.lastname||'');
+  return fn+'|'+ln+'|'+norm(r.city)+'|'+norm(r.state);
+}
+
+function askTier(val) {
+  const v = parseFloat(val)||0;
+  if(v >= 3500) return {ask1:3500,ask2:5000,ask3:7000,ask_tier:'highest'};
+  if(v >= 1000) return {ask1:1000,ask2:1500,ask3:2000,ask_tier:'high'};
+  if(v >= 100)  return {ask1:100,ask2:250,ask3:500,ask_tier:'middle'};
+  return {ask1:25,ask2:50,ask3:75,ask_tier:'lowest'};
+}
+
+function padId(prefix, n, total) {
+  const digits = Math.max(5, total.toString().length);
+  return prefix + '-' + n.toString().padStart(digits,'0');
+}
+
+function process() {
+  const errBox = document.getElementById('error-box');
+  errBox.classList.add('hidden');
+
+  const rows = mainData.map(r => Object.assign({},r));
+  const sourceCode = document.getElementById('source-code').value.trim()||'';
+  const idPrefix = document.getElementById('id-prefix').value.trim()||'ID';
+  const maxRows = parseInt(document.getElementById('max-rows').value)||14000;
+  const sortBy = document.getElementById('sort-by').value;
+
+  const inputCount = rows.length;
+
+  const cleaned = rows.map(r => {
+    const fn = norm(r.first_name||r.firstname||'');
+    const ln = norm(r.last_name||r.lastname||'');
+    let zip = (r.zip||'').toString().trim();
+    if(zip === '.' || zip === '' || zip == null) zip = null;
+    const addr = norm(r.address||'');
+    const city = norm(r.city||'');
+    const state = norm(r.state||'');
+    const ask = r.ask||r.ask1||'0';
+    return {first_name:fn,last_name:ln,address:addr,city,state,zip,original_ask:ask};
+  }).filter(r => r.zip && r.address && r.address.length > 2);
+
+  const seen1 = new Set(), seen2 = new Set(), deduped = [];
+  for(const r of cleaned){
+    const k1=key1(r), k2=key2(r);
+    if(seen1.has(k1)||seen2.has(k2)) continue;
+    seen1.add(k1); seen2.add(k2);
+    deduped.push(r);
+  }
+  const dupesRemoved = inputCount - deduped.length;
+
+  let suppressed = 0;
+  let final = deduped;
+  if(supData && supData.length > 0){
+    const supK1 = new Set(supData.map(key1));
+    const supK2 = new Set(supData.map(r => {
+      const fn=norm(r.first_name||r.firstname||'');
+      const ln=norm(r.last_name||r.lastname||'');
+      return fn+'|'+ln+'|'+norm(r.city)+'|'+norm(r.state);
+    }));
+    const before = final.length;
+    final = final.filter(r => !supK1.has(key1(r)) && !supK2.has(key2(r)));
+    suppressed = before - final.length;
+  }
+
+  if(sortBy==='ask3'){
+    final.sort((a,b)=>(parseFloat(askTier(b.original_ask).ask3)||0)-(parseFloat(askTier(a.original_ask).ask3)||0));
+  } else if(sortBy==='ask1'){
+    final.sort((a,b)=>(parseFloat(askTier(b.original_ask).ask1)||0)-(parseFloat(askTier(a.original_ask).ask1)||0));
+  }
+
+  if(final.length > maxRows) final = final.slice(0, maxRows);
+
+  outputRows = final.map((r,i) => {
+    const t = askTier(r.original_ask);
+    return {
+      donor_id: padId(idPrefix, i+1, final.length),
+      source_code: sourceCode,
+      first_name: r.first_name,
+      last_name: r.last_name,
+      address: r.address,
+      city: r.city,
+      state: r.state,
+      zip: r.zip,
+      ask1: t.ask1,
+      ask2: t.ask2,
+      ask3: t.ask3,
+      ask_tier: t.ask_tier,
+      original_ask: r.original_ask
+    };
+  });
+
+  document.getElementById('s-input').textContent = inputCount.toLocaleString();
+  document.getElementById('s-dupes').textContent = dupesRemoved.toLocaleString();
+  document.getElementById('s-sup').textContent = suppressed.toLocaleString();
+  document.getElementById('s-out').textContent = outputRows.length.toLocaleString();
+  document.getElementById('results').classList.remove('hidden');
+}
+
+document.getElementById('dl-btn').addEventListener('click',()=>{
+  if(!outputRows) return;
+  const csv = Papa.unparse(outputRows);
+  const blob = new Blob([csv],{type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const sc = document.getElementById('source-code').value.trim()||'output';
+  const today = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  a.download = sc.toLowerCase()+'_print_ready_'+today+'.csv';
+  a.click();
+});
+
+function wireUpload(inputId, dropVar, setId, nameId) {
+  document.getElementById(inputId).addEventListener('change', function(){
+    if(!this.files[0]) return;
+    const file = this.files[0];
+    parseCSV(file,(err,data)=>{
+      if(err){showErr('Could not parse '+file.name+': '+err.message);return;}
+      if(dropVar==='main') mainData=data; else supData=data;
+      document.getElementById(nameId).textContent = file.name+' ('+data.length.toLocaleString()+' rows)';
+      document.getElementById(setId).classList.remove('hidden');
+      checkReady();
+    });
+  });
+  const clearId = inputId.replace('file','clear');
+  document.getElementById(clearId).addEventListener('click',()=>{
+    if(dropVar==='main') mainData=null; else supData=null;
+    document.getElementById(setId).classList.add('hidden');
+    document.getElementById(inputId).value='';
+    document.getElementById('results').classList.add('hidden');
+    outputRows=null;
+    checkReady();
+  });
+}
+
+wireUpload('main-file','main','main-set','main-name');
+wireUpload('sup-file','sup','sup-set','sup-name');
+
+function checkReady(){
+  document.getElementById('run-btn').disabled = !mainData;
+}
+
+function showErr(msg){
+  const b=document.getElementById('error-box');
+  b.textContent=msg;
+  b.classList.remove('hidden');
+}
+
+document.getElementById('run-btn').addEventListener('click',()=>{
+  try{ process(); } catch(e){ showErr('Processing error: '+e.message); }
+});
+</script>
+</body>
+</html>
