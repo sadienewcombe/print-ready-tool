@@ -49,7 +49,7 @@
   <p class="sub">Dedupes, applies ask tiers, adds donor IDs, and exports a clean CSV.</p>
 
   <div class="section">
-    <div class="label">Main list <span style="font-size:11px;color:#aaa;font-weight:400">(required)</span></div>
+    <div class="label">Moosehead list <span style="font-size:11px;color:#aaa;font-weight:400">(required)</span></div>
     <div class="drop" id="main-drop">
       <input type="file" accept=".csv" id="main-file">
       <div class="drop-icon">↑</div>
@@ -92,7 +92,7 @@
     <div class="grid">
       <div class="field">
         <label>Max records</label>
-        <input type="number" id="max-rows" value="14000" min="1" step="1">
+        <input type="number" id="max-rows" placeholder="e.g. 14000" min="1" step="1">
       </div>
       <div class="field">
         <label>Sort output by</label>
@@ -191,6 +191,8 @@ function askTier(val) {
   return {ask1:25,ask2:50,ask3:75,ask_tier:'lowest'};
 }
 
+function proper(s){ return (s||'').toLowerCase().replace(/\b\w/g, c => c.toUpperCase()); }
+
 function padId(prefix, n, total) {
   const digits = Math.max(5, total.toString().length);
   return prefix + '-' + n.toString().padStart(digits,'0');
@@ -203,7 +205,8 @@ function process() {
   const rows = mainData.map(r => Object.assign({},r));
   const sourceCode = document.getElementById('source-code').value.trim()||'';
   const idPrefix = document.getElementById('id-prefix').value.trim()||'ID';
-  const maxRows = parseInt(document.getElementById('max-rows').value)||14000;
+  const maxRowsVal = document.getElementById('max-rows').value;
+  const maxRows = maxRowsVal ? parseInt(maxRowsVal) : Infinity;
   const sortBy = document.getElementById('sort-by').value;
 
   const inputCount = rows.length;
@@ -256,8 +259,8 @@ function process() {
     return {
       donor_id: padId(idPrefix, i+1, final.length),
       source_code: sourceCode,
-      first_name: r.first_name,
-      last_name: r.last_name,
+      first_name: proper(r.first_name),
+      last_name: proper(r.last_name),
       address: r.address,
       city: r.city,
       state: r.state,
