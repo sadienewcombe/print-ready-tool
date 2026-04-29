@@ -62,16 +62,13 @@
   </div>
 
   <div class="section">
-    <div class="label">Suppression list <span class="optional-tag">(optional)</span></div>
+    <div class="label">Suppression lists <span class="optional-tag">(optional — upload as many as needed)</span></div>
     <div class="drop" id="sup-drop">
-      <input type="file" accept=".csv" id="sup-file">
+      <input type="file" accept=".csv" id="sup-file" multiple>
       <div class="drop-icon">↑</div>
-      <div class="drop-label"><strong>Upload suppression file</strong> — must have first_name, last_name, address, city, state</div>
+      <div class="drop-label"><strong>Upload suppression file(s)</strong> — must have first_name, last_name, address, city, state</div>
     </div>
-    <div class="file-set hidden" id="sup-set">
-      <span class="file-name" id="sup-name"></span>
-      <button class="clear-btn" id="sup-clear">×</button>
-    </div>
+    <div id="sup-file-list" style="margin-top:8px;display:flex;flex-direction:column;gap:6px"></div>
   </div>
 
   <hr class="divider">
@@ -101,6 +98,13 @@
           <option value="ask1">ask1 (highest first)</option>
           <option value="none">no sort (keep original order)</option>
         </select>
+      </div>
+    </div>
+    <div style="margin-top:12px">
+      <div class="field">
+        <label>Priority states <span style="font-size:11px;color:#aaa;font-weight:400">(optional — comma separated, e.g. NY, NJ, CT)</span></label>
+        <input type="text" id="priority-states" placeholder="e.g. NY, NJ, CT">
+        <span class="tier-hint">These states will appear first before the list is cut to max records. Within each group, sort order above still applies.</span>
       </div>
     </div>
   </div>
@@ -150,13 +154,15 @@
   <div class="error hidden" id="error-box"></div>
 
   <div id="results" class="hidden">
-    <div class="stats">
+    <div class="stats" style="grid-template-columns:repeat(5,1fr)">
       <div class="stat"><div class="stat-n" id="s-input">—</div><div class="stat-l">input rows</div></div>
+      <div class="stat"><div class="stat-n" id="s-invalid">—</div><div class="stat-l">invalid rows</div></div>
       <div class="stat"><div class="stat-n" id="s-dupes">—</div><div class="stat-l">dupes removed</div></div>
       <div class="stat"><div class="stat-n" id="s-sup">—</div><div class="stat-l">suppressed</div></div>
       <div class="stat"><div class="stat-n" id="s-out">—</div><div class="stat-l">output rows</div></div>
     </div>
-    <button class="dl-btn" id="dl-btn">Download print-ready CSV</button>
+    <button class="dl-btn" id="dl-btn">↓ Download print-ready CSV</button>
+    <button class="dl-btn" id="dl-removed-btn" style="margin-top:8px;color:#999">↓ Download removed rows (audit log)</button>
   </div>
 
   <button class="run-btn" id="run-btn" disabled>Process list</button>
@@ -164,7 +170,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script>
-let mainData = null, supData = null, outputRows = null;
+let mainData = null, supFiles = [], outputRows = null, removedRows = null;
 
 function parseCSV(file, cb) {
   Papa.parse(file, {
@@ -210,8 +216,9 @@ function process() {
   const sortBy = document.getElementById('sort-by').value;
 
   const inputCount = rows.length;
+  removedRows = [];
 
-  const cleaned = rows.map(r => {
+  const allCleaned = rows.map(r => {
     const fn = norm(r.first_name||r.firstname||'');
     const ln = norm(r.last_name||r.lastname||'');
     let zip = (r.zip||'').toString().trim();
@@ -221,35 +228,73 @@ function process() {
     const state = norm(r.state||'');
     const ask = r.ask||r.ask1||'0';
     return {first_name:fn,last_name:ln,address:addr,city,state,zip,original_ask:ask};
-  }).filter(r => r.zip && r.address && r.address.length > 2);
+  });
+
+  const cleaned = [];
+  for(const r of allCleaned){
+    if(!r.zip || r.zip==='.'){
+      removedRows.push({...r, drop_reason:'missing or invalid zip'});
+    } else if(!r.address || r.address.length <= 2){
+      removedRows.push({...r, drop_reason:'missing or invalid address'});
+    } else {
+      cleaned.push(r);
+    }
+  }
+  const invalidCount = removedRows.length;
 
   const seen1 = new Set(), seen2 = new Set(), deduped = [];
   for(const r of cleaned){
     const k1=key1(r), k2=key2(r);
-    if(seen1.has(k1)||seen2.has(k2)) continue;
-    seen1.add(k1); seen2.add(k2);
-    deduped.push(r);
+    if(seen1.has(k1)){
+      removedRows.push({...r, drop_reason:'duplicate address+city+state'});
+    } else if(seen2.has(k2)){
+      removedRows.push({...r, drop_reason:'duplicate first+last+city+state'});
+    } else {
+      seen1.add(k1); seen2.add(k2);
+      deduped.push(r);
+    }
   }
-  const dupesRemoved = inputCount - deduped.length;
+  const dupesRemoved = cleaned.length - deduped.length;
 
   let suppressed = 0;
   let final = deduped;
-  if(supData && supData.length > 0){
-    const supK1 = new Set(supData.map(key1));
-    const supK2 = new Set(supData.map(r => {
+  if(supFiles.length > 0){
+    const allSup = supFiles.flat();
+    const supK1 = new Set(allSup.map(key1));
+    const supK2 = new Set(allSup.map(r => {
       const fn=norm(r.first_name||r.firstname||'');
       const ln=norm(r.last_name||r.lastname||'');
       return fn+'|'+ln+'|'+norm(r.city)+'|'+norm(r.state);
     }));
     const before = final.length;
-    final = final.filter(r => !supK1.has(key1(r)) && !supK2.has(key2(r)));
+    final = final.filter(r => {
+      if(supK1.has(key1(r))){
+        removedRows.push({...r, drop_reason:'suppressed — matched address+city+state'});
+        return false;
+      }
+      if(supK2.has(key2(r))){
+        removedRows.push({...r, drop_reason:'suppressed — matched first+last+city+state'});
+        return false;
+      }
+      return true;
+    });
     suppressed = before - final.length;
   }
+
+  const priorityRaw = document.getElementById('priority-states').value;
+  const priorityStates = priorityRaw.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
 
   if(sortBy==='ask3'){
     final.sort((a,b)=>(parseFloat(askTier(b.original_ask).ask3)||0)-(parseFloat(askTier(a.original_ask).ask3)||0));
   } else if(sortBy==='ask1'){
     final.sort((a,b)=>(parseFloat(askTier(b.original_ask).ask1)||0)-(parseFloat(askTier(a.original_ask).ask1)||0));
+  }
+
+  if(priorityStates.length > 0){
+    const isPriority = r => priorityStates.includes(norm(r.state));
+    const priority = final.filter(isPriority);
+    const rest = final.filter(r => !isPriority(r));
+    final = [...priority, ...rest];
   }
 
   if(final.length > maxRows) final = final.slice(0, maxRows);
@@ -274,6 +319,7 @@ function process() {
   });
 
   document.getElementById('s-input').textContent = inputCount.toLocaleString();
+  document.getElementById('s-invalid').textContent = invalidCount.toLocaleString();
   document.getElementById('s-dupes').textContent = dupesRemoved.toLocaleString();
   document.getElementById('s-sup').textContent = suppressed.toLocaleString();
   document.getElementById('s-out').textContent = outputRows.length.toLocaleString();
@@ -289,6 +335,27 @@ document.getElementById('dl-btn').addEventListener('click',()=>{
   const sc = document.getElementById('source-code').value.trim()||'output';
   const today = new Date().toISOString().slice(0,10).replace(/-/g,'');
   a.download = sc.toLowerCase()+'_print_ready_'+today+'.csv';
+  a.click();
+});
+
+document.getElementById('dl-removed-btn').addEventListener('click',()=>{
+  if(!removedRows || removedRows.length === 0) return;
+  const csv = Papa.unparse(removedRows.map(r => ({
+    first_name: proper(r.first_name),
+    last_name: proper(r.last_name),
+    address: r.address,
+    city: r.city,
+    state: r.state,
+    zip: r.zip||'',
+    original_ask: r.original_ask,
+    drop_reason: r.drop_reason
+  })));
+  const blob = new Blob([csv],{type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const sc = document.getElementById('source-code').value.trim()||'output';
+  const today = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  a.download = sc.toLowerCase()+'_removed_rows_'+today+'.csv';
   a.click();
 });
 
@@ -310,13 +377,43 @@ function wireUpload(inputId, dropVar, setId, nameId) {
     document.getElementById(setId).classList.add('hidden');
     document.getElementById(inputId).value='';
     document.getElementById('results').classList.add('hidden');
-    outputRows=null;
+    outputRows=null; removedRows=null;
     checkReady();
   });
 }
 
 wireUpload('main-file','main','main-set','main-name');
-wireUpload('sup-file','sup','sup-set','sup-name');
+
+// Multi-file suppression handler
+document.getElementById('sup-file').addEventListener('change', function(){
+  const files = Array.from(this.files);
+  if(!files.length) return;
+  let loaded = 0;
+  files.forEach(file => {
+    parseCSV(file, (err, data) => {
+      if(err){ showErr('Could not parse '+file.name+': '+err.message); return; }
+      supFiles.push(data);
+      const list = document.getElementById('sup-file-list');
+      const row = document.createElement('div');
+      row.className = 'file-set';
+      row.dataset.idx = supFiles.length - 1;
+      row.innerHTML = `<span class="file-name">${file.name} (${data.length.toLocaleString()} rows)</span><button class="clear-btn" onclick="removeSup(this)">×</button>`;
+      list.appendChild(row);
+      loaded++;
+      if(loaded === files.length) this.value = '';
+    });
+  });
+});
+
+function removeSup(btn){
+  const row = btn.closest('.file-set');
+  const idx = parseInt(row.dataset.idx);
+  supFiles.splice(idx, 1);
+  // re-index remaining rows
+  const list = document.getElementById('sup-file-list');
+  Array.from(list.children).forEach((r, i) => r.dataset.idx = i);
+  row.remove();
+}
 
 function checkReady(){
   document.getElementById('run-btn').disabled = !mainData;
