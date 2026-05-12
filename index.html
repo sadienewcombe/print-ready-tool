@@ -77,20 +77,16 @@
     <div class="label">Configuration</div>
     <div class="grid" style="margin-bottom:12px">
       <div class="field">
-        <label>Source code</label>
-        <input type="text" id="source-code" placeholder="e.g. GASP26">
-      </div>
-      <div class="field">
         <label>Donor ID prefix</label>
         <input type="text" id="id-prefix" placeholder="e.g. GASP26">
-        <span class="tier-hint">Generates GASP26-00001, GASP26-00002…</span>
+        <span class="tier-hint">Generates GASP26-00001, GASP26-00002… Skipped if file already has a contact_id column.</span>
       </div>
-    </div>
-    <div class="grid">
       <div class="field">
         <label>Max records</label>
         <input type="number" id="max-rows" placeholder="e.g. 14000" min="1" step="1">
       </div>
+    </div>
+    <div class="grid" style="margin-bottom:12px">
       <div class="field">
         <label>Sort output by</label>
         <select id="sort-by">
@@ -99,13 +95,23 @@
           <option value="none">no sort (keep original order)</option>
         </select>
       </div>
-    </div>
-    <div style="margin-top:12px">
       <div class="field">
-        <label>Priority states <span style="font-size:11px;color:#aaa;font-weight:400">(optional — comma separated, e.g. NY, NJ, CT)</span></label>
+        <label>Priority states <span style="font-size:11px;color:#aaa;font-weight:400">(optional, e.g. NY, NJ)</span></label>
         <input type="text" id="priority-states" placeholder="e.g. NY, NJ, CT">
-        <span class="tier-hint">These states will appear first before the list is cut to max records. Within each group, sort order above still applies.</span>
       </div>
+    </div>
+
+    <div style="margin-bottom:6px">
+      <div style="font-size:12px;color:#666;margin-bottom:6px">Source codes <span style="font-size:11px;color:#aaa;font-weight:400">— add multiple to randomly split the list. Skipped if file already has a source_code column.</span></div>
+      <div id="sc-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">
+        <div class="sc-row" style="display:grid;grid-template-columns:1fr 80px 28px;gap:6px;align-items:center">
+          <input type="text" class="sc-code" placeholder="Source code e.g. GASP26A" style="font-size:13px;padding:7px 10px;border-radius:8px;border:0.5px solid #ccc;background:#fff;color:#1a1a1a">
+          <input type="number" class="sc-pct" placeholder="%" min="1" max="100" style="font-size:13px;padding:7px 10px;border-radius:8px;border:0.5px solid #ccc;background:#fff;color:#1a1a1a;text-align:right" value="100">
+          <button onclick="removeScRow(this)" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:18px;line-height:1;padding:0">×</button>
+        </div>
+      </div>
+      <button id="add-sc-btn" style="font-size:12px;color:#666;background:none;border:0.5px solid #ccc;border-radius:6px;padding:5px 10px;cursor:pointer">+ Add source code</button>
+      <span id="sc-pct-warn" style="font-size:11px;color:#c0392b;margin-left:10px;display:none">Percentages must add up to 100%</span>
     </div>
   </div>
 
@@ -209,11 +215,23 @@ function process() {
   errBox.classList.add('hidden');
 
   const rows = mainData.map(r => Object.assign({},r));
-  const sourceCode = document.getElementById('source-code').value.trim()||'';
   const idPrefix = document.getElementById('id-prefix').value.trim()||'ID';
   const maxRowsVal = document.getElementById('max-rows').value;
   const maxRows = maxRowsVal ? parseInt(maxRowsVal) : Infinity;
   const sortBy = document.getElementById('sort-by').value;
+
+  // Read source codes + percentages
+  const scRows = Array.from(document.querySelectorAll('.sc-row'));
+  const sourceCodes = scRows.map(row => ({
+    code: row.querySelector('.sc-code').value.trim(),
+    pct: parseFloat(row.querySelector('.sc-pct').value)||0
+  })).filter(s => s.code);
+  const totalPct = sourceCodes.reduce((a,b) => a+b.pct, 0);
+  if(sourceCodes.length > 1 && Math.abs(totalPct - 100) > 0.01){
+    document.getElementById('sc-pct-warn').style.display='inline';
+    return;
+  }
+  document.getElementById('sc-pct-warn').style.display='none';
 
   const inputCount = rows.length;
   removedRows = [];
@@ -227,7 +245,9 @@ function process() {
     const city = norm(r.city||'');
     const state = norm(r.state||'');
     const ask = r.ask||r.ask1||'0';
-    return {first_name:fn,last_name:ln,address:addr,city,state,zip,original_ask:ask};
+    const existingId = r.contact_id||r.contactid||r.donor_id||'';
+    const existingSc = r.source_code||r.sourcecode||'';
+    return {first_name:fn,last_name:ln,address:addr,city,state,zip,original_ask:ask,_existing_id:existingId,_existing_sc:existingSc};
   });
 
   const cleaned = [];
@@ -299,11 +319,37 @@ function process() {
 
   if(final.length > maxRows) final = final.slice(0, maxRows);
 
+  // Randomly shuffle for source code assignment if multiple codes
+  let assignList = [...final];
+  if(sourceCodes.length > 1){
+    for(let i=assignList.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1));
+      [assignList[i],assignList[j]]=[assignList[j],assignList[i]];
+    }
+  }
+  // Build source code assignment map by index
+  const scAssignment = new Array(assignList.length);
+  if(sourceCodes.length > 0){
+    let cursor = 0;
+    sourceCodes.forEach((sc, si) => {
+      const count = si === sourceCodes.length-1
+        ? assignList.length - cursor
+        : Math.round((sc.pct/100)*assignList.length);
+      for(let k=0;k<count&&cursor<assignList.length;k++,cursor++){
+        scAssignment[cursor] = sc.code;
+      }
+    });
+  }
+  // Re-map assignList back to final order for output
+  const scMap = new Map(assignList.map((r,i) => [r, scAssignment[i]]));
+
   outputRows = final.map((r,i) => {
     const t = askTier(r.original_ask);
+    const assignedSc = r._existing_sc || scMap.get(r) || (sourceCodes[0]||{code:''}).code;
+    const assignedId = r._existing_id || padId(idPrefix, i+1, final.length);
     return {
-      donor_id: padId(idPrefix, i+1, final.length),
-      source_code: sourceCode,
+      donor_id: assignedId,
+      source_code: assignedSc,
       first_name: proper(r.first_name),
       last_name: proper(r.last_name),
       address: r.address,
@@ -332,7 +378,7 @@ document.getElementById('dl-btn').addEventListener('click',()=>{
   const blob = new Blob([csv],{type:'text/csv'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  const sc = document.getElementById('source-code').value.trim()||'output';
+  const sc = document.querySelector('.sc-code')?.value.trim()||'output';
   const today = new Date().toISOString().slice(0,10).replace(/-/g,'');
   a.download = sc.toLowerCase()+'_print_ready_'+today+'.csv';
   a.click();
@@ -353,10 +399,35 @@ document.getElementById('dl-removed-btn').addEventListener('click',()=>{
   const blob = new Blob([csv],{type:'text/csv'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  const sc = document.getElementById('source-code').value.trim()||'output';
+  const sc = document.querySelector('.sc-code')?.value.trim()||'output';
   const today = new Date().toISOString().slice(0,10).replace(/-/g,'');
   a.download = sc.toLowerCase()+'_removed_rows_'+today+'.csv';
   a.click();
+});
+
+function removeScRow(btn){
+  const rows = document.querySelectorAll('.sc-row');
+  if(rows.length <= 1) return;
+  btn.closest('.sc-row').remove();
+  rebalancePct();
+}
+
+function rebalancePct(){
+  const rows = document.querySelectorAll('.sc-row');
+  const equal = Math.floor(100/rows.length);
+  rows.forEach((r,i) => {
+    r.querySelector('.sc-pct').value = i === rows.length-1 ? 100 - equal*(rows.length-1) : equal;
+  });
+}
+
+document.getElementById('add-sc-btn').addEventListener('click',()=>{
+  const list = document.getElementById('sc-list');
+  const div = document.createElement('div');
+  div.className = 'sc-row';
+  div.style.cssText = 'display:grid;grid-template-columns:1fr 80px 28px;gap:6px;align-items:center';
+  div.innerHTML = `<input type="text" class="sc-code" placeholder="Source code e.g. GASP26B" style="font-size:13px;padding:7px 10px;border-radius:8px;border:0.5px solid #ccc;background:#fff;color:#1a1a1a"><input type="number" class="sc-pct" placeholder="%" min="1" max="100" style="font-size:13px;padding:7px 10px;border-radius:8px;border:0.5px solid #ccc;background:#fff;color:#1a1a1a;text-align:right"><button onclick="removeScRow(this)" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:18px;line-height:1;padding:0">×</button>`;
+  list.appendChild(div);
+  rebalancePct();
 });
 
 function wireUpload(inputId, dropVar, setId, nameId) {
