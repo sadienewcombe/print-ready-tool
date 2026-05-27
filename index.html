@@ -102,16 +102,23 @@
     </div>
 
     <div style="margin-bottom:6px">
-      <div style="font-size:12px;color:#666;margin-bottom:6px">Source codes <span style="font-size:11px;color:#aaa;font-weight:400">— add multiple to randomly split the list. Skipped if file already has a source_code column.</span></div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+        <div style="font-size:12px;color:#666">Source codes <span style="font-size:11px;color:#aaa;font-weight:400">— add multiple to randomly split the list. Skipped if file already has a source_code column.</span></div>
+        <div style="display:flex;align-items:center;gap:4px;margin-left:auto;flex-shrink:0">
+          <span style="font-size:11px;color:#666">Split by</span>
+          <button id="sc-mode-pct" onclick="setScMode('pct')" style="font-size:11px;padding:3px 8px;border-radius:4px;border:0.5px solid #ccc;cursor:pointer;background:#1a1a1a;color:#fff">%</button>
+          <button id="sc-mode-qty" onclick="setScMode('qty')" style="font-size:11px;padding:3px 8px;border-radius:4px;border:0.5px solid #ccc;cursor:pointer;background:#fff;color:#1a1a1a">#</button>
+        </div>
+      </div>
       <div id="sc-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">
         <div class="sc-row" style="display:grid;grid-template-columns:1fr 80px 28px;gap:6px;align-items:center">
           <input type="text" class="sc-code" placeholder="Source code e.g. GASP26A" style="font-size:13px;padding:7px 10px;border-radius:8px;border:0.5px solid #ccc;background:#fff;color:#1a1a1a">
-          <input type="number" class="sc-pct" placeholder="%" min="1" max="100" style="font-size:13px;padding:7px 10px;border-radius:8px;border:0.5px solid #ccc;background:#fff;color:#1a1a1a;text-align:right" value="100">
+          <input type="number" class="sc-val" placeholder="100" min="1" style="font-size:13px;padding:7px 10px;border-radius:8px;border:0.5px solid #ccc;background:#fff;color:#1a1a1a;text-align:right" value="100">
           <button onclick="removeScRow(this)" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:18px;line-height:1;padding:0">×</button>
         </div>
       </div>
       <button id="add-sc-btn" style="font-size:12px;color:#666;background:none;border:0.5px solid #ccc;border-radius:6px;padding:5px 10px;cursor:pointer">+ Add source code</button>
-      <span id="sc-pct-warn" style="font-size:11px;color:#c0392b;margin-left:10px;display:none">Percentages must add up to 100%</span>
+      <span id="sc-pct-warn" style="font-size:11px;color:#c0392b;margin-left:10px;display:none"></span>
     </div>
   </div>
 
@@ -220,18 +227,25 @@ function process() {
   const maxRows = maxRowsVal ? parseInt(maxRowsVal) : Infinity;
   const sortBy = document.getElementById('sort-by').value;
 
-  // Read source codes + percentages
+  // Read source codes
   const scRows = Array.from(document.querySelectorAll('.sc-row'));
   const sourceCodes = scRows.map(row => ({
     code: row.querySelector('.sc-code').value.trim(),
-    pct: parseFloat(row.querySelector('.sc-pct').value)||0
+    val: parseFloat(row.querySelector('.sc-val').value)||0
   })).filter(s => s.code);
-  const totalPct = sourceCodes.reduce((a,b) => a+b.pct, 0);
-  if(sourceCodes.length > 1 && Math.abs(totalPct - 100) > 0.01){
-    document.getElementById('sc-pct-warn').style.display='inline';
-    return;
+
+  if(sourceCodes.length > 1){
+    const warn = document.getElementById('sc-pct-warn');
+    if(scMode === 'pct'){
+      const totalPct = sourceCodes.reduce((a,b) => a+b.val, 0);
+      if(Math.abs(totalPct - 100) > 0.01){
+        warn.textContent = 'Percentages must add up to 100%';
+        warn.style.display = 'inline';
+        return;
+      }
+    }
+    warn.style.display = 'none';
   }
-  document.getElementById('sc-pct-warn').style.display='none';
 
   const inputCount = rows.length;
   removedRows = [];
@@ -327,14 +341,21 @@ function process() {
       [assignList[i],assignList[j]]=[assignList[j],assignList[i]];
     }
   }
-  // Build source code assignment map by index
+  // Build source code assignment
   const scAssignment = new Array(assignList.length);
   if(sourceCodes.length > 0){
     let cursor = 0;
     sourceCodes.forEach((sc, si) => {
-      const count = si === sourceCodes.length-1
-        ? assignList.length - cursor
-        : Math.round((sc.pct/100)*assignList.length);
+      let count;
+      if(scMode === 'qty'){
+        count = si === sourceCodes.length-1
+          ? assignList.length - cursor
+          : Math.min(sc.val, assignList.length - cursor);
+      } else {
+        count = si === sourceCodes.length-1
+          ? assignList.length - cursor
+          : Math.round((sc.val/100)*assignList.length);
+      }
       for(let k=0;k<count&&cursor<assignList.length;k++,cursor++){
         scAssignment[cursor] = sc.code;
       }
@@ -405,18 +426,37 @@ document.getElementById('dl-removed-btn').addEventListener('click',()=>{
   a.click();
 });
 
+let scMode = 'pct';
+
+function setScMode(mode){
+  scMode = mode;
+  const pctBtn = document.getElementById('sc-mode-pct');
+  const qtyBtn = document.getElementById('sc-mode-qty');
+  pctBtn.style.background = mode==='pct' ? '#1a1a1a' : '#fff';
+  pctBtn.style.color = mode==='pct' ? '#fff' : '#1a1a1a';
+  qtyBtn.style.background = mode==='qty' ? '#1a1a1a' : '#fff';
+  qtyBtn.style.color = mode==='qty' ? '#fff' : '#1a1a1a';
+  document.querySelectorAll('.sc-val').forEach(inp => {
+    inp.placeholder = mode==='pct' ? '%' : '#';
+    if(mode==='qty') { inp.removeAttribute('max'); inp.value=''; }
+    else { inp.setAttribute('max','100'); }
+  });
+  if(mode==='pct') rebalancePct();
+  document.getElementById('sc-pct-warn').style.display='none';
+}
+
 function removeScRow(btn){
   const rows = document.querySelectorAll('.sc-row');
   if(rows.length <= 1) return;
   btn.closest('.sc-row').remove();
-  rebalancePct();
+  if(scMode==='pct') rebalancePct();
 }
 
 function rebalancePct(){
   const rows = document.querySelectorAll('.sc-row');
   const equal = Math.floor(100/rows.length);
   rows.forEach((r,i) => {
-    r.querySelector('.sc-pct').value = i === rows.length-1 ? 100 - equal*(rows.length-1) : equal;
+    r.querySelector('.sc-val').value = i === rows.length-1 ? 100 - equal*(rows.length-1) : equal;
   });
 }
 
@@ -425,9 +465,10 @@ document.getElementById('add-sc-btn').addEventListener('click',()=>{
   const div = document.createElement('div');
   div.className = 'sc-row';
   div.style.cssText = 'display:grid;grid-template-columns:1fr 80px 28px;gap:6px;align-items:center';
-  div.innerHTML = `<input type="text" class="sc-code" placeholder="Source code e.g. GASP26B" style="font-size:13px;padding:7px 10px;border-radius:8px;border:0.5px solid #ccc;background:#fff;color:#1a1a1a"><input type="number" class="sc-pct" placeholder="%" min="1" max="100" style="font-size:13px;padding:7px 10px;border-radius:8px;border:0.5px solid #ccc;background:#fff;color:#1a1a1a;text-align:right"><button onclick="removeScRow(this)" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:18px;line-height:1;padding:0">×</button>`;
+  const placeholder = scMode==='pct' ? '%' : '#';
+  div.innerHTML = `<input type="text" class="sc-code" placeholder="Source code e.g. GASP26B" style="font-size:13px;padding:7px 10px;border-radius:8px;border:0.5px solid #ccc;background:#fff;color:#1a1a1a"><input type="number" class="sc-val" placeholder="${placeholder}" min="1" style="font-size:13px;padding:7px 10px;border-radius:8px;border:0.5px solid #ccc;background:#fff;color:#1a1a1a;text-align:right"><button onclick="removeScRow(this)" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:18px;line-height:1;padding:0">×</button>`;
   list.appendChild(div);
-  rebalancePct();
+  if(scMode==='pct') rebalancePct();
 });
 
 function wireUpload(inputId, dropVar, setId, nameId) {
