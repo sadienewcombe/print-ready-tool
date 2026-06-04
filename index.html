@@ -5,42 +5,43 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Print-Ready Mail List</title>
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;color:#1a1a1a;background:#f9f9f7;min-height:100vh;padding:2rem 1rem}
-  .wrap{max-width:640px;margin:0 auto;background:#fff;border-radius:12px;border:0.5px solid #ddd;padding:2rem}
-  h1{font-size:20px;font-weight:600;margin-bottom:0.25rem}
-  .sub{font-size:13px;color:#666;margin-bottom:2rem}
-  .section{margin-bottom:1.5rem}
-  .label{font-size:12px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px}
-  .drop{border:1.5px dashed #ccc;border-radius:10px;padding:1.5rem;text-align:center;cursor:pointer;transition:background 0.15s;position:relative}
-  .drop:hover{background:#f5f5f3}
-  .drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-  .drop-icon{font-size:20px;margin-bottom:6px;color:#999}
-  .drop-label{font-size:13px;color:#666}
-  .drop-label strong{color:#1a1a1a;font-weight:500}
-  .file-set{background:#f5f5f3;border-radius:8px;padding:10px 14px;font-size:13px;display:flex;align-items:center;justify-content:space-between;margin-top:8px}
-  .file-name{font-family:'SF Mono',Menlo,monospace;font-size:12px}
-  .clear-btn{background:none;border:none;cursor:pointer;color:#999;font-size:16px;padding:0 4px;line-height:1}
-  .clear-btn:hover{color:#1a1a1a}
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  .field{display:flex;flex-direction:column;gap:4px}
-  .field label{font-size:12px;color:#666}
-  .field input,.field select{font-size:13px;padding:7px 10px;border-radius:8px;border:0.5px solid #ccc;background:#fff;color:#1a1a1a;width:100%}
-  .field input:focus,.field select:focus{outline:none;border-color:#888}
-  .optional-tag{font-size:11px;color:#aaa;font-weight:400}
-  .divider{border:none;border-top:0.5px solid #e5e5e5;margin:1.5rem 0}
-  .run-btn{width:100%;padding:11px;font-size:14px;font-weight:500;border-radius:8px;border:none;background:#1a1a1a;color:#fff;cursor:pointer;transition:opacity 0.15s;margin-top:0.5rem}
-  .run-btn:hover{opacity:0.85}
-  .run-btn:disabled{opacity:0.35;cursor:not-allowed}
-  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1.5rem}
-  .stat{background:#f5f5f3;border-radius:8px;padding:10px 12px}
-  .stat-n{font-size:22px;font-weight:600;font-family:'SF Mono',Menlo,monospace}
-  .stat-l{font-size:11px;color:#666;margin-top:2px}
-  .dl-btn{width:100%;padding:10px;font-size:13px;font-weight:500;border-radius:8px;border:0.5px solid #ccc;background:#fff;color:#1a1a1a;cursor:pointer;transition:background 0.15s;text-align:center}
-  .dl-btn:hover{background:#f5f5f3}
-  .error{background:#fff0f0;color:#c0392b;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:1rem;border:0.5px solid #f5c6c6}
-  .hidden{display:none}
-  .tier-hint{font-size:11px;color:#999;margin-top:4px;line-height:1.5}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;color:#1a1a1a;background:#f9f9f7;min-height:100vh;padding:2rem 1rem}
+.wrap{max-width:640px;margin:0 auto;background:#fff;border-radius:12px;border:0.5px solid #ddd;padding:2rem}
+h1{font-size:20px;font-weight:600;margin-bottom:0.25rem}
+.sub{font-size:13px;color:#666;margin-bottom:2rem}
+.section{margin-bottom:1.5rem}
+.label{font-size:12px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px}
+.drop{border:1.5px dashed #ccc;border-radius:10px;padding:1.25rem;text-align:center;cursor:pointer;transition:background 0.15s;position:relative}
+.drop:hover{background:#f5f5f3}
+.drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.drop-icon{font-size:18px;margin-bottom:5px;color:#999}
+.drop-label{font-size:13px;color:#666}
+.drop-label strong{color:#1a1a1a;font-weight:500}
+.file-set{background:#f5f5f3;border-radius:8px;border:0.5px solid #e5e5e5;padding:9px 14px;font-size:13px;display:flex;align-items:center;justify-content:space-between;margin-top:6px}
+.file-name{font-family:'SF Mono',Menlo,monospace;font-size:12px}
+.clear-btn{background:none;border:none;cursor:pointer;color:#aaa;font-size:16px;padding:0 4px;line-height:1}
+.clear-btn:hover{color:#1a1a1a}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:12px;color:#666}
+.field input,.field select{font-size:13px;padding:7px 10px;border-radius:8px;border:0.5px solid #ccc;background:#fff;color:#1a1a1a;width:100%}
+.field input:focus,.field select:focus{outline:none;border-color:#888}
+.hint{font-size:11px;color:#aaa;margin-top:3px;line-height:1.5}
+.divider{border:none;border-top:0.5px solid #e5e5e5;margin:1.5rem 0}
+.run-btn{width:100%;padding:11px;font-size:14px;font-weight:500;border-radius:8px;border:none;background:#1a1a1a;color:#fff;cursor:pointer;transition:opacity 0.15s;margin-top:0.25rem}
+.run-btn:hover{opacity:0.85}
+.run-btn:disabled{opacity:0.3;cursor:not-allowed}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:1rem}
+.stat{background:#f5f5f3;border-radius:8px;padding:10px 12px;border:0.5px solid #e5e5e5}
+.stat-n{font-size:18px;font-weight:600;font-family:'SF Mono',Menlo,monospace}
+.stat-l{font-size:10px;color:#666;margin-top:2px}
+.dl-btn{width:100%;padding:10px;font-size:13px;font-weight:500;border-radius:8px;border:0.5px solid #ccc;background:#fff;color:#1a1a1a;cursor:pointer;transition:background 0.15s;display:block}
+.dl-btn:hover{background:#f5f5f3}
+.dl-btn.secondary{color:#999;margin-top:8px}
+.error{background:#fff0f0;color:#c0392b;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:1rem;border:0.5px solid #f5c6c6}
+.hidden{display:none}
+.sc-input{font-size:13px;padding:7px 10px;border-radius:8px;border:0.5px solid #ccc;background:#fff;color:#1a1a1a}
 </style>
 </head>
 <body>
@@ -49,8 +50,8 @@
   <p class="sub">Dedupes, applies ask tiers, adds donor IDs, and exports a clean CSV.</p>
 
   <div class="section">
-    <div class="label">Moosehead list <span style="font-size:11px;color:#aaa;font-weight:400">(required)</span></div>
-    <div class="drop" id="main-drop">
+    <div class="label">Moosehead list <span style="font-size:11px;color:#aaa;font-weight:400;text-transform:none;letter-spacing:0">(required)</span></div>
+    <div class="drop">
       <input type="file" accept=".csv" id="main-file">
       <div class="drop-icon">↑</div>
       <div class="drop-label"><strong>Upload CSV</strong> — must have first_name, last_name, address, city, state, zip, ask</div>
@@ -62,8 +63,8 @@
   </div>
 
   <div class="section">
-    <div class="label">Suppression lists <span class="optional-tag">(optional — upload as many as needed)</span></div>
-    <div class="drop" id="sup-drop">
+    <div class="label">Suppression lists <span style="font-size:11px;color:#aaa;font-weight:400;text-transform:none;letter-spacing:0">(optional — upload as many as needed)</span></div>
+    <div class="drop">
       <input type="file" accept=".csv" id="sup-file" multiple>
       <div class="drop-icon">↑</div>
       <div class="drop-label"><strong>Upload suppression file(s)</strong> — must have first_name, last_name, address, city, state</div>
@@ -79,14 +80,14 @@
       <div class="field">
         <label>Donor ID prefix</label>
         <input type="text" id="id-prefix" placeholder="e.g. GASP26">
-        <span class="tier-hint">Generates GASP26-00001, GASP26-00002… Skipped if file already has a contact_id column.</span>
+        <span class="hint">Generates GASP26-00001… Skipped if file already has a contact_id column.</span>
       </div>
       <div class="field">
         <label>Max records</label>
         <input type="number" id="max-rows" placeholder="e.g. 14000" min="1" step="1">
       </div>
     </div>
-    <div class="grid" style="margin-bottom:12px">
+    <div class="grid" style="margin-bottom:16px">
       <div class="field">
         <label>Sort output by</label>
         <select id="sort-by">
@@ -101,10 +102,11 @@
       </div>
     </div>
 
-    <div style="margin-bottom:6px">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
-        <div style="font-size:12px;color:#666">Source codes <span style="font-size:11px;color:#aaa;font-weight:400">— add multiple to randomly split the list. Skipped if file already has a source_code column.</span></div>
-        <div style="display:flex;align-items:center;gap:4px;margin-left:auto;flex-shrink:0">
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+        <span style="font-size:12px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">Source codes</span>
+        <span style="font-size:11px;color:#aaa">add multiple to randomly split. Skipped if file already has a source_code column.</span>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:4px;flex-shrink:0">
           <span style="font-size:11px;color:#666">Split by</span>
           <button id="sc-mode-pct" onclick="setScMode('pct')" style="font-size:11px;padding:3px 8px;border-radius:4px;border:0.5px solid #ccc;cursor:pointer;background:#1a1a1a;color:#fff">%</button>
           <button id="sc-mode-qty" onclick="setScMode('qty')" style="font-size:11px;padding:3px 8px;border-radius:4px;border:0.5px solid #ccc;cursor:pointer;background:#fff;color:#1a1a1a">#</button>
@@ -112,13 +114,13 @@
       </div>
       <div id="sc-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">
         <div class="sc-row" style="display:grid;grid-template-columns:1fr 80px 28px;gap:6px;align-items:center">
-          <input type="text" class="sc-code" placeholder="Source code e.g. GASP26A" style="font-size:13px;padding:7px 10px;border-radius:8px;border:0.5px solid #ccc;background:#fff;color:#1a1a1a">
-          <input type="number" class="sc-val" placeholder="100" min="1" style="font-size:13px;padding:7px 10px;border-radius:8px;border:0.5px solid #ccc;background:#fff;color:#1a1a1a;text-align:right" value="100">
+          <input type="text" class="sc-code sc-input" placeholder="Source code e.g. GASP26A">
+          <input type="number" class="sc-val sc-input" placeholder="%" min="1" max="100" value="100" style="text-align:right">
           <button onclick="removeScRow(this)" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:18px;line-height:1;padding:0">×</button>
         </div>
       </div>
       <button id="add-sc-btn" style="font-size:12px;color:#666;background:none;border:0.5px solid #ccc;border-radius:6px;padding:5px 10px;cursor:pointer">+ Add source code</button>
-      <span id="sc-pct-warn" style="font-size:11px;color:#c0392b;margin-left:10px;display:none"></span>
+      <span id="sc-warn" style="font-size:11px;color:#c0392b;margin-left:10px;display:none"></span>
     </div>
   </div>
 
@@ -166,8 +168,8 @@
 
   <div class="error hidden" id="error-box"></div>
 
-  <div id="results" class="hidden">
-    <div class="stats" style="grid-template-columns:repeat(5,1fr)">
+  <div id="results" class="hidden" style="margin-bottom:1rem">
+    <div class="stats">
       <div class="stat"><div class="stat-n" id="s-input">—</div><div class="stat-l">input rows</div></div>
       <div class="stat"><div class="stat-n" id="s-invalid">—</div><div class="stat-l">invalid rows</div></div>
       <div class="stat"><div class="stat-n" id="s-dupes">—</div><div class="stat-l">dupes removed</div></div>
@@ -175,7 +177,7 @@
       <div class="stat"><div class="stat-n" id="s-out">—</div><div class="stat-l">output rows</div></div>
     </div>
     <button class="dl-btn" id="dl-btn">↓ Download print-ready CSV</button>
-    <button class="dl-btn" id="dl-removed-btn" style="margin-top:8px;color:#999">↓ Download removed rows (audit log)</button>
+    <button class="dl-btn secondary" id="dl-removed-btn">↓ Download removed rows (audit log)</button>
   </div>
 
   <button class="run-btn" id="run-btn" disabled>Process list</button>
@@ -183,362 +185,297 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script>
-let mainData = null, supFiles = [], outputRows = null, removedRows = null;
+let mainData = null, supFiles = [], outputRows = null, removedRows = null, scMode = 'pct';
 
-function parseCSV(file, cb) {
-  Papa.parse(file, {
-    header: true, skipEmptyLines: true,
-    transformHeader: h => h.trim().toLowerCase().replace(/\s+/g,'_'),
-    complete: r => cb(null, r.data),
-    error: e => cb(e)
-  });
+// Address normalization — for dedup keys only, output address is unchanged
+const STREET_TYPES = {
+  'STREET':'ST','AVENUE':'AVE','BOULEVARD':'BLVD','DRIVE':'DR',
+  'ROAD':'RD','COURT':'CT','LANE':'LN','PLACE':'PL','CIRCLE':'CIR',
+  'HIGHWAY':'HWY','PARKWAY':'PKWY','TERRACE':'TER','TRAIL':'TRL',
+  'SQUARE':'SQ','ALLEY':'ALY','POINT':'PT','RIDGE':'RDG',
+  'EXPRESSWAY':'EXPY','FREEWAY':'FWY',
+};
+const DIRECTIONALS = {
+  'NORTH':'N','SOUTH':'S','EAST':'E','WEST':'W',
+  'NORTHEAST':'NE','NORTHWEST':'NW','SOUTHEAST':'SE','SOUTHWEST':'SW',
+};
+const UNIT_TYPES = {
+  'APARTMENT':'APT','SUITE':'STE','FLOOR':'FL',
+  'BUILDING':'BLDG','ROOM':'RM','UNIT':'UNIT',
+};
+
+function normalizeAddr(addr) {
+  let s = (addr||'').toUpperCase().trim();
+  // Normalize # variants: #5, # 5, #APT5 → APT 5
+  s = s.replace(/#\s*(\d+)/g, 'APT $1');
+  // Remove punctuation except hyphens
+  s = s.replace(/[.,]/g, '');
+  const tokens = s.split(/\s+/);
+  return tokens.map(tok => {
+    if(/^\d/.test(tok)) return tok;
+    return UNIT_TYPES[tok] || STREET_TYPES[tok] || DIRECTIONALS[tok] || tok;
+  }).join(' ');
 }
 
-function norm(s) { return (s||'').toString().trim().toUpperCase(); }
-function key1(r) { return norm(r.address)+'|'+norm(r.city)+'|'+norm(r.state); }
-function key2(r) {
+function norm(s){ return (s||'').toString().trim().toUpperCase(); }
+function proper(s){ return (s||'').toLowerCase().replace(/\b\w/g, c => c.toUpperCase()); }
+function key1(r){ return normalizeAddr(norm(r.address))+'|'+norm(r.city)+'|'+norm(r.state); }
+function key2(r){
   const fn = norm(r.first_name||r.firstname||'');
   const ln = norm(r.last_name||r.lastname||'');
   return fn+'|'+ln+'|'+norm(r.city)+'|'+norm(r.state);
 }
-
-function askTier(val) {
+function askTier(val){
   const v = parseFloat(val)||0;
   if(v >= 3500) return {ask1:3500,ask2:5000,ask3:7000,ask_tier:'highest'};
   if(v >= 1000) return {ask1:1000,ask2:1500,ask3:2000,ask_tier:'high'};
   if(v >= 100)  return {ask1:100,ask2:250,ask3:500,ask_tier:'middle'};
   return {ask1:25,ask2:50,ask3:75,ask_tier:'lowest'};
 }
-
-function proper(s){ return (s||'').toLowerCase().replace(/\b\w/g, c => c.toUpperCase()); }
-
-function padId(prefix, n, total) {
-  const digits = Math.max(5, total.toString().length);
-  return prefix + '-' + n.toString().padStart(digits,'0');
+function padId(prefix, n, total){
+  return prefix+'-'+n.toString().padStart(Math.max(5,total.toString().length),'0');
+}
+function parseCSV(file, cb){
+  Papa.parse(file,{header:true,skipEmptyLines:true,
+    transformHeader:h=>h.trim().toLowerCase().replace(/\s+/g,'_'),
+    complete:r=>cb(null,r.data),error:e=>cb(e)});
 }
 
-function process() {
-  const errBox = document.getElementById('error-box');
-  errBox.classList.add('hidden');
+// Source code mode toggle
+function setScMode(mode){
+  scMode=mode;
+  const p=document.getElementById('sc-mode-pct'), q=document.getElementById('sc-mode-qty');
+  p.style.background=mode==='pct'?'#1a1a1a':'#fff'; p.style.color=mode==='pct'?'#fff':'#1a1a1a';
+  q.style.background=mode==='qty'?'#1a1a1a':'#fff'; q.style.color=mode==='qty'?'#fff':'#1a1a1a';
+  document.querySelectorAll('.sc-val').forEach(inp=>{
+    inp.placeholder=mode==='pct'?'%':'#';
+    if(mode==='qty'){inp.removeAttribute('max');inp.value='';}
+    else{inp.setAttribute('max','100');}
+  });
+  if(mode==='pct') rebalancePct();
+  document.getElementById('sc-warn').style.display='none';
+}
+function rebalancePct(){
+  const rows=document.querySelectorAll('.sc-row');
+  const eq=Math.floor(100/rows.length);
+  rows.forEach((r,i)=>r.querySelector('.sc-val').value=i===rows.length-1?100-eq*(rows.length-1):eq);
+}
+function removeScRow(btn){
+  if(document.querySelectorAll('.sc-row').length<=1) return;
+  btn.closest('.sc-row').remove();
+  if(scMode==='pct') rebalancePct();
+}
+document.getElementById('add-sc-btn').addEventListener('click',()=>{
+  const list=document.getElementById('sc-list');
+  const div=document.createElement('div');
+  div.className='sc-row';
+  div.style.cssText='display:grid;grid-template-columns:1fr 80px 28px;gap:6px;align-items:center';
+  div.innerHTML=`<input type="text" class="sc-code sc-input" placeholder="Source code e.g. GASP26B" style="font-size:13px;padding:7px 10px;border-radius:8px;border:0.5px solid #ccc;background:#fff;color:#1a1a1a"><input type="number" class="sc-val sc-input" placeholder="${scMode==='pct'?'%':'#'}" min="1" ${scMode==='pct'?'max="100"':''} style="font-size:13px;padding:7px 10px;border-radius:8px;border:0.5px solid #ccc;background:#fff;color:#1a1a1a;text-align:right"><button onclick="removeScRow(this)" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:18px;line-height:1;padding:0">×</button>`;
+  list.appendChild(div);
+  if(scMode==='pct') rebalancePct();
+});
 
-  const rows = mainData.map(r => Object.assign({},r));
-  const idPrefix = document.getElementById('id-prefix').value.trim()||'ID';
-  const maxRowsVal = document.getElementById('max-rows').value;
-  const maxRows = maxRowsVal ? parseInt(maxRowsVal) : Infinity;
-  const sortBy = document.getElementById('sort-by').value;
+// File uploads
+document.getElementById('main-file').addEventListener('change',function(){
+  if(!this.files[0]) return;
+  parseCSV(this.files[0],(err,data)=>{
+    if(err){showErr('Could not parse file: '+err.message);return;}
+    mainData=data;
+    document.getElementById('main-name').textContent=this.files[0].name+' ('+data.length.toLocaleString()+' rows)';
+    document.getElementById('main-set').classList.remove('hidden');
+    checkReady();
+  });
+});
+document.getElementById('main-clear').addEventListener('click',()=>{
+  mainData=null;
+  document.getElementById('main-set').classList.add('hidden');
+  document.getElementById('main-file').value='';
+  document.getElementById('results').classList.add('hidden');
+  outputRows=null;removedRows=null;
+  checkReady();
+});
+document.getElementById('sup-file').addEventListener('change',function(){
+  Array.from(this.files).forEach(file=>{
+    parseCSV(file,(err,data)=>{
+      if(err){showErr('Could not parse '+file.name+': '+err.message);return;}
+      supFiles.push(data);
+      const row=document.createElement('div');
+      row.className='file-set'; row.dataset.idx=supFiles.length-1;
+      row.innerHTML=`<span class="file-name">${file.name} (${data.length.toLocaleString()} rows)</span><button class="clear-btn" onclick="removeSup(this)">×</button>`;
+      document.getElementById('sup-file-list').appendChild(row);
+    });
+  });
+  this.value='';
+});
+function removeSup(btn){
+  const row=btn.closest('.file-set'), idx=parseInt(row.dataset.idx);
+  supFiles.splice(idx,1);
+  Array.from(document.getElementById('sup-file-list').children).forEach((r,i)=>r.dataset.idx=i);
+  row.remove();
+}
+function checkReady(){document.getElementById('run-btn').disabled=!mainData;}
+function showErr(msg){const b=document.getElementById('error-box');b.textContent=msg;b.classList.remove('hidden');}
 
-  // Read source codes
-  const scRows = Array.from(document.querySelectorAll('.sc-row'));
-  const sourceCodes = scRows.map(row => ({
-    code: row.querySelector('.sc-code').value.trim(),
-    val: parseFloat(row.querySelector('.sc-val').value)||0
-  })).filter(s => s.code);
+// Process
+function process(){
+  document.getElementById('error-box').classList.add('hidden');
+  const rows=mainData.map(r=>Object.assign({},r));
+  const idPrefix=document.getElementById('id-prefix').value.trim()||'ID';
+  const maxRowsVal=document.getElementById('max-rows').value;
+  const maxRows=maxRowsVal?parseInt(maxRowsVal):Infinity;
+  const sortBy=document.getElementById('sort-by').value;
 
-  if(sourceCodes.length > 1){
-    const warn = document.getElementById('sc-pct-warn');
-    if(scMode === 'pct'){
-      const totalPct = sourceCodes.reduce((a,b) => a+b.val, 0);
-      if(Math.abs(totalPct - 100) > 0.01){
-        warn.textContent = 'Percentages must add up to 100%';
-        warn.style.display = 'inline';
-        return;
-      }
+  const scRows=Array.from(document.querySelectorAll('.sc-row'));
+  const sourceCodes=scRows.map(r=>({
+    code:r.querySelector('.sc-code').value.trim(),
+    val:parseFloat(r.querySelector('.sc-val').value)||0
+  })).filter(s=>s.code);
+  if(sourceCodes.length>1&&scMode==='pct'){
+    const total=sourceCodes.reduce((a,b)=>a+b.val,0);
+    if(Math.abs(total-100)>0.01){
+      const w=document.getElementById('sc-warn');
+      w.textContent='Percentages must add up to 100%';w.style.display='inline';return;
     }
-    warn.style.display = 'none';
   }
+  document.getElementById('sc-warn').style.display='none';
 
-  const inputCount = rows.length;
-  removedRows = [];
+  const inputCount=rows.length;
+  removedRows=[];
 
-  const allCleaned = rows.map(r => {
-    const fn = norm(r.first_name||r.firstname||'');
-    const ln = norm(r.last_name||r.lastname||'');
-    let zip = (r.zip||'').toString().trim();
-    if(zip === '.' || zip === '' || zip == null) zip = null;
-    const addr = norm(r.address||'');
-    const city = norm(r.city||'');
-    const state = norm(r.state||'');
-    const ask = r.ask||r.ask1||'0';
-    const existingId = r.contact_id||r.contactid||r.donor_id||'';
-    const existingSc = r.source_code||r.sourcecode||'';
-    return {first_name:fn,last_name:ln,address:addr,city,state,zip,original_ask:ask,_existing_id:existingId,_existing_sc:existingSc};
+  const allCleaned=rows.map(r=>{
+    const fn=norm(r.first_name||r.firstname||'');
+    const ln=norm(r.last_name||r.lastname||'');
+    let zip=(r.zip||'').toString().trim();
+    if(zip==='.'||zip===''||zip==null) zip=null;
+    return {
+      first_name:fn,last_name:ln,
+      address:norm(r.address||''),city:norm(r.city||''),state:norm(r.state||''),
+      zip,original_ask:r.ask||r.ask1||'0',
+      _existing_id:r.contact_id||r.contactid||r.donor_id||'',
+      _existing_sc:r.source_code||r.sourcecode||''
+    };
   });
 
-  const cleaned = [];
+  const cleaned=[];
   for(const r of allCleaned){
-    if(!r.zip || r.zip==='.'){
-      removedRows.push({...r, drop_reason:'missing or invalid zip'});
-    } else if(!r.address || r.address.length <= 2){
-      removedRows.push({...r, drop_reason:'missing or invalid address'});
-    } else {
-      cleaned.push(r);
-    }
+    if(!r.zip||r.zip==='.') removedRows.push({...r,drop_reason:'missing or invalid zip'});
+    else if(!r.address||r.address.length<=2) removedRows.push({...r,drop_reason:'missing or invalid address'});
+    else cleaned.push(r);
   }
-  const invalidCount = removedRows.length;
+  const invalidCount=removedRows.length;
 
-  const seen1 = new Set(), seen2 = new Set(), deduped = [];
+  const seen1=new Map(),seen2=new Map(),deduped=[];
   for(const r of cleaned){
-    const k1=key1(r), k2=key2(r);
+    const k1=key1(r),k2=key2(r);
     if(seen1.has(k1)){
-      removedRows.push({...r, drop_reason:'duplicate address+city+state'});
+      const match=seen1.get(k1);
+      removedRows.push({...r,drop_reason:'duplicate address+city+state',matched_first_name:proper(match.first_name),matched_last_name:proper(match.last_name),matched_address:match.address,matched_city:match.city,matched_state:match.state});
     } else if(seen2.has(k2)){
-      removedRows.push({...r, drop_reason:'duplicate first+last+city+state'});
-    } else {
-      seen1.add(k1); seen2.add(k2);
-      deduped.push(r);
-    }
+      const match=seen2.get(k2);
+      removedRows.push({...r,drop_reason:'duplicate first+last+city+state',matched_first_name:proper(match.first_name),matched_last_name:proper(match.last_name),matched_address:match.address,matched_city:match.city,matched_state:match.state});
+    } else{seen1.set(k1,r);seen2.set(k2,r);deduped.push(r);}
   }
-  const dupesRemoved = cleaned.length - deduped.length;
+  const dupesRemoved=cleaned.length-deduped.length;
 
-  let suppressed = 0;
-  let final = deduped;
-  if(supFiles.length > 0){
-    const allSup = supFiles.flat();
-    const supK1 = new Set(allSup.map(key1));
-    const supK2 = new Set(allSup.map(r => {
+  let suppressed=0,final=deduped;
+  if(supFiles.length>0){
+    const allSup=supFiles.flat();
+    const supK1=new Map(allSup.map(r=>[key1(r),r]));
+    const supK2=new Map(allSup.map(r=>{
       const fn=norm(r.first_name||r.firstname||'');
       const ln=norm(r.last_name||r.lastname||'');
-      return fn+'|'+ln+'|'+norm(r.city)+'|'+norm(r.state);
+      return [fn+'|'+ln+'|'+norm(r.city)+'|'+norm(r.state),r];
     }));
-    const before = final.length;
-    final = final.filter(r => {
-      if(supK1.has(key1(r))){
-        removedRows.push({...r, drop_reason:'suppressed — matched address+city+state'});
+    final=final.filter(r=>{
+      const m1=supK1.get(key1(r));
+      if(m1){
+        const mfn=norm(m1.first_name||m1.firstname||''),mln=norm(m1.last_name||m1.lastname||'');
+        removedRows.push({...r,drop_reason:'suppressed - matched address+city+state',matched_first_name:proper(mfn),matched_last_name:proper(mln),matched_address:norm(m1.address||''),matched_city:norm(m1.city||''),matched_state:norm(m1.state||'')});
         return false;
       }
-      if(supK2.has(key2(r))){
-        removedRows.push({...r, drop_reason:'suppressed — matched first+last+city+state'});
+      const m2=supK2.get(key2(r));
+      if(m2){
+        const mfn=norm(m2.first_name||m2.firstname||''),mln=norm(m2.last_name||m2.lastname||'');
+        removedRows.push({...r,drop_reason:'suppressed - matched first+last+city+state',matched_first_name:proper(mfn),matched_last_name:proper(mln),matched_address:norm(m2.address||''),matched_city:norm(m2.city||''),matched_state:norm(m2.state||'')});
         return false;
       }
       return true;
     });
-    suppressed = before - final.length;
+    suppressed=deduped.length-final.length;
   }
 
-  const priorityRaw = document.getElementById('priority-states').value;
-  const priorityStates = priorityRaw.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+  if(sortBy==='ask3') final.sort((a,b)=>askTier(b.original_ask).ask3-askTier(a.original_ask).ask3);
+  else if(sortBy==='ask1') final.sort((a,b)=>askTier(b.original_ask).ask1-askTier(a.original_ask).ask1);
 
-  if(sortBy==='ask3'){
-    final.sort((a,b)=>(parseFloat(askTier(b.original_ask).ask3)||0)-(parseFloat(askTier(a.original_ask).ask3)||0));
-  } else if(sortBy==='ask1'){
-    final.sort((a,b)=>(parseFloat(askTier(b.original_ask).ask1)||0)-(parseFloat(askTier(a.original_ask).ask1)||0));
+  const priorityStates=document.getElementById('priority-states').value.split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
+  if(priorityStates.length>0){
+    const isPri=r=>priorityStates.includes(r.state);
+    final=[...final.filter(isPri),...final.filter(r=>!isPri(r))];
   }
 
-  if(priorityStates.length > 0){
-    const isPriority = r => priorityStates.includes(norm(r.state));
-    const priority = final.filter(isPriority);
-    const rest = final.filter(r => !isPriority(r));
-    final = [...priority, ...rest];
-  }
+  if(final.length>maxRows) final=final.slice(0,maxRows);
 
-  if(final.length > maxRows) final = final.slice(0, maxRows);
-
-  // Randomly shuffle for source code assignment if multiple codes
-  let assignList = [...final];
-  if(sourceCodes.length > 1){
+  const assignList=[...final];
+  if(sourceCodes.length>1){
     for(let i=assignList.length-1;i>0;i--){
       const j=Math.floor(Math.random()*(i+1));
       [assignList[i],assignList[j]]=[assignList[j],assignList[i]];
     }
   }
-  // Build source code assignment
-  const scAssignment = new Array(assignList.length);
-  if(sourceCodes.length > 0){
-    let cursor = 0;
-    sourceCodes.forEach((sc, si) => {
-      let count;
-      if(scMode === 'qty'){
-        count = si === sourceCodes.length-1
-          ? assignList.length - cursor
-          : Math.min(sc.val, assignList.length - cursor);
-      } else {
-        count = si === sourceCodes.length-1
-          ? assignList.length - cursor
-          : Math.round((sc.val/100)*assignList.length);
-      }
-      for(let k=0;k<count&&cursor<assignList.length;k++,cursor++){
-        scAssignment[cursor] = sc.code;
-      }
+  const scAssignment=new Array(assignList.length);
+  if(sourceCodes.length>0){
+    let cursor=0;
+    sourceCodes.forEach((sc,si)=>{
+      let count=si===sourceCodes.length-1?assignList.length-cursor:
+        scMode==='qty'?Math.min(sc.val,assignList.length-cursor):Math.round((sc.val/100)*assignList.length);
+      for(let k=0;k<count&&cursor<assignList.length;k++,cursor++) scAssignment[cursor]=sc.code;
     });
   }
-  // Re-map assignList back to final order for output
-  const scMap = new Map(assignList.map((r,i) => [r, scAssignment[i]]));
+  const scMap=new Map(assignList.map((r,i)=>[r,scAssignment[i]]));
 
-  outputRows = final.map((r,i) => {
-    const t = askTier(r.original_ask);
-    const assignedSc = r._existing_sc || scMap.get(r) || (sourceCodes[0]||{code:''}).code;
-    const assignedId = r._existing_id || padId(idPrefix, i+1, final.length);
+  outputRows=final.map((r,i)=>{
+    const t=askTier(r.original_ask);
     return {
-      donor_id: assignedId,
-      source_code: assignedSc,
-      first_name: proper(r.first_name),
-      last_name: proper(r.last_name),
-      address: r.address,
-      city: r.city,
-      state: r.state,
-      zip: r.zip,
-      ask1: t.ask1,
-      ask2: t.ask2,
-      ask3: t.ask3,
-      ask_tier: t.ask_tier,
-      original_ask: r.original_ask
+      donor_id:r._existing_id||padId(idPrefix,i+1,final.length),
+      source_code:r._existing_sc||scMap.get(r)||(sourceCodes[0]||{code:''}).code,
+      first_name:proper(r.first_name),last_name:proper(r.last_name),
+      address:r.address,city:r.city,state:r.state,zip:r.zip,
+      ask1:t.ask1,ask2:t.ask2,ask3:t.ask3,ask_tier:t.ask_tier,original_ask:r.original_ask
     };
   });
 
-  document.getElementById('s-input').textContent = inputCount.toLocaleString();
-  document.getElementById('s-invalid').textContent = invalidCount.toLocaleString();
-  document.getElementById('s-dupes').textContent = dupesRemoved.toLocaleString();
-  document.getElementById('s-sup').textContent = suppressed.toLocaleString();
-  document.getElementById('s-out').textContent = outputRows.length.toLocaleString();
+  document.getElementById('s-input').textContent=inputCount.toLocaleString();
+  document.getElementById('s-invalid').textContent=invalidCount.toLocaleString();
+  document.getElementById('s-dupes').textContent=dupesRemoved.toLocaleString();
+  document.getElementById('s-sup').textContent=suppressed.toLocaleString();
+  document.getElementById('s-out').textContent=outputRows.length.toLocaleString();
   document.getElementById('results').classList.remove('hidden');
 }
 
+document.getElementById('run-btn').addEventListener('click',()=>{try{process();}catch(e){showErr('Processing error: '+e.message);}});
+
+function getFileStem(){return(document.querySelector('.sc-code')?.value.trim()||'output').toLowerCase();}
+function dlCSV(data,filename){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([Papa.unparse(data)],{type:'text/csv'}));
+  a.download=filename; a.click();
+}
 document.getElementById('dl-btn').addEventListener('click',()=>{
   if(!outputRows) return;
-  const csv = Papa.unparse(outputRows);
-  const blob = new Blob([csv],{type:'text/csv'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  const sc = document.querySelector('.sc-code')?.value.trim()||'output';
-  const today = new Date().toISOString().slice(0,10).replace(/-/g,'');
-  a.download = sc.toLowerCase()+'_print_ready_'+today+'.csv';
-  a.click();
+  dlCSV(outputRows,getFileStem()+'_print_ready_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.csv');
 });
-
 document.getElementById('dl-removed-btn').addEventListener('click',()=>{
-  if(!removedRows || removedRows.length === 0) return;
-  const csv = Papa.unparse(removedRows.map(r => ({
-    first_name: proper(r.first_name),
-    last_name: proper(r.last_name),
-    address: r.address,
-    city: r.city,
-    state: r.state,
-    zip: r.zip||'',
-    original_ask: r.original_ask,
-    drop_reason: r.drop_reason
-  })));
-  const blob = new Blob([csv],{type:'text/csv'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  const sc = document.querySelector('.sc-code')?.value.trim()||'output';
-  const today = new Date().toISOString().slice(0,10).replace(/-/g,'');
-  a.download = sc.toLowerCase()+'_removed_rows_'+today+'.csv';
-  a.click();
-});
-
-let scMode = 'pct';
-
-function setScMode(mode){
-  scMode = mode;
-  const pctBtn = document.getElementById('sc-mode-pct');
-  const qtyBtn = document.getElementById('sc-mode-qty');
-  pctBtn.style.background = mode==='pct' ? '#1a1a1a' : '#fff';
-  pctBtn.style.color = mode==='pct' ? '#fff' : '#1a1a1a';
-  qtyBtn.style.background = mode==='qty' ? '#1a1a1a' : '#fff';
-  qtyBtn.style.color = mode==='qty' ? '#fff' : '#1a1a1a';
-  document.querySelectorAll('.sc-val').forEach(inp => {
-    inp.placeholder = mode==='pct' ? '%' : '#';
-    if(mode==='qty') { inp.removeAttribute('max'); inp.value=''; }
-    else { inp.setAttribute('max','100'); }
-  });
-  if(mode==='pct') rebalancePct();
-  document.getElementById('sc-pct-warn').style.display='none';
-}
-
-function removeScRow(btn){
-  const rows = document.querySelectorAll('.sc-row');
-  if(rows.length <= 1) return;
-  btn.closest('.sc-row').remove();
-  if(scMode==='pct') rebalancePct();
-}
-
-function rebalancePct(){
-  const rows = document.querySelectorAll('.sc-row');
-  const equal = Math.floor(100/rows.length);
-  rows.forEach((r,i) => {
-    r.querySelector('.sc-val').value = i === rows.length-1 ? 100 - equal*(rows.length-1) : equal;
-  });
-}
-
-document.getElementById('add-sc-btn').addEventListener('click',()=>{
-  const list = document.getElementById('sc-list');
-  const div = document.createElement('div');
-  div.className = 'sc-row';
-  div.style.cssText = 'display:grid;grid-template-columns:1fr 80px 28px;gap:6px;align-items:center';
-  const placeholder = scMode==='pct' ? '%' : '#';
-  div.innerHTML = `<input type="text" class="sc-code" placeholder="Source code e.g. GASP26B" style="font-size:13px;padding:7px 10px;border-radius:8px;border:0.5px solid #ccc;background:#fff;color:#1a1a1a"><input type="number" class="sc-val" placeholder="${placeholder}" min="1" style="font-size:13px;padding:7px 10px;border-radius:8px;border:0.5px solid #ccc;background:#fff;color:#1a1a1a;text-align:right"><button onclick="removeScRow(this)" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:18px;line-height:1;padding:0">×</button>`;
-  list.appendChild(div);
-  if(scMode==='pct') rebalancePct();
-});
-
-function wireUpload(inputId, dropVar, setId, nameId) {
-  document.getElementById(inputId).addEventListener('change', function(){
-    if(!this.files[0]) return;
-    const file = this.files[0];
-    parseCSV(file,(err,data)=>{
-      if(err){showErr('Could not parse '+file.name+': '+err.message);return;}
-      if(dropVar==='main') mainData=data; else supData=data;
-      document.getElementById(nameId).textContent = file.name+' ('+data.length.toLocaleString()+' rows)';
-      document.getElementById(setId).classList.remove('hidden');
-      checkReady();
-    });
-  });
-  const clearId = inputId.replace('file','clear');
-  document.getElementById(clearId).addEventListener('click',()=>{
-    if(dropVar==='main') mainData=null; else supData=null;
-    document.getElementById(setId).classList.add('hidden');
-    document.getElementById(inputId).value='';
-    document.getElementById('results').classList.add('hidden');
-    outputRows=null; removedRows=null;
-    checkReady();
-  });
-}
-
-wireUpload('main-file','main','main-set','main-name');
-
-// Multi-file suppression handler
-document.getElementById('sup-file').addEventListener('change', function(){
-  const files = Array.from(this.files);
-  if(!files.length) return;
-  let loaded = 0;
-  files.forEach(file => {
-    parseCSV(file, (err, data) => {
-      if(err){ showErr('Could not parse '+file.name+': '+err.message); return; }
-      supFiles.push(data);
-      const list = document.getElementById('sup-file-list');
-      const row = document.createElement('div');
-      row.className = 'file-set';
-      row.dataset.idx = supFiles.length - 1;
-      row.innerHTML = `<span class="file-name">${file.name} (${data.length.toLocaleString()} rows)</span><button class="clear-btn" onclick="removeSup(this)">×</button>`;
-      list.appendChild(row);
-      loaded++;
-      if(loaded === files.length) this.value = '';
-    });
-  });
-});
-
-function removeSup(btn){
-  const row = btn.closest('.file-set');
-  const idx = parseInt(row.dataset.idx);
-  supFiles.splice(idx, 1);
-  // re-index remaining rows
-  const list = document.getElementById('sup-file-list');
-  Array.from(list.children).forEach((r, i) => r.dataset.idx = i);
-  row.remove();
-}
-
-function checkReady(){
-  document.getElementById('run-btn').disabled = !mainData;
-}
-
-function showErr(msg){
-  const b=document.getElementById('error-box');
-  b.textContent=msg;
-  b.classList.remove('hidden');
-}
-
-document.getElementById('run-btn').addEventListener('click',()=>{
-  try{ process(); } catch(e){ showErr('Processing error: '+e.message); }
+  if(!removedRows||!removedRows.length) return;
+  dlCSV(removedRows.map(r=>({
+    first_name:proper(r.first_name),last_name:proper(r.last_name),
+    address:r.address,city:r.city,state:r.state,zip:r.zip||'',
+    original_ask:r.original_ask,drop_reason:r.drop_reason,
+    matched_first_name:r.matched_first_name||'',
+    matched_last_name:r.matched_last_name||'',
+    matched_address:r.matched_address||'',
+    matched_city:r.matched_city||'',
+    matched_state:r.matched_state||''
+  })),getFileStem()+'_removed_rows_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.csv');
 });
 </script>
 </body>
