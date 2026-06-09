@@ -177,13 +177,16 @@ h1{font-size:20px;font-weight:600;margin-bottom:0.25rem}
       <div class="stat"><div class="stat-n" id="s-out">—</div><div class="stat-l">output rows</div></div>
     </div>
     <button class="dl-btn" id="dl-btn">↓ Download print-ready CSV</button>
-    <button class="dl-btn secondary" id="dl-removed-btn">↓ Download removed rows (audit log)</button>
+    <button class="dl-btn" id="dl-btn-xlsx" style="margin-top:8px">↓ Download print-ready XLSX (preserves leading zeros)</button>
+    <button class="dl-btn secondary" id="dl-removed-btn" style="margin-top:16px">↓ Download removed rows CSV (audit log)</button>
+    <button class="dl-btn secondary" id="dl-removed-btn-xlsx">↓ Download removed rows XLSX (audit log)</button>
   </div>
 
   <button class="run-btn" id="run-btn" disabled>Process list</button>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 let mainData = null, supFiles = [], outputRows = null, removedRows = null, scMode = 'pct';
 
@@ -219,6 +222,7 @@ function normalizeAddr(addr) {
 
 function norm(s){ return (s||'').toString().trim().toUpperCase(); }
 function proper(s){ return (s||'').toLowerCase().replace(/\b\w/g, c => c.toUpperCase()); }
+function padZip(z){ return (z||'').toString().trim().padStart(5,'0'); }
 function key1(r){ return normalizeAddr(norm(r.address))+'|'+norm(r.city)+'|'+norm(r.state); }
 function key2(r){
   const fn = norm(r.first_name||r.firstname||'');
@@ -236,7 +240,7 @@ function padId(prefix, n, total){
   return prefix+'-'+n.toString().padStart(Math.max(5,total.toString().length),'0');
 }
 function parseCSV(file, cb){
-  Papa.parse(file,{header:true,skipEmptyLines:true,
+  Papa.parse(file,{header:true,skipEmptyLines:true,dynamicTyping:false,
     transformHeader:h=>h.trim().toLowerCase().replace(/\s+/g,'_'),
     complete:r=>cb(null,r.data),error:e=>cb(e)});
 }
@@ -439,7 +443,7 @@ function process(){
       donor_id:r._existing_id||padId(idPrefix,i+1,final.length),
       source_code:r._existing_sc||scMap.get(r)||(sourceCodes[0]||{code:''}).code,
       first_name:proper(r.first_name),last_name:proper(r.last_name),
-      address:r.address,city:r.city,state:r.state,zip:r.zip,
+      address:r.address,city:r.city,state:r.state,zip:padZip(r.zip),
       ask1:t.ask1,ask2:t.ask2,ask3:t.ask3,ask_tier:t.ask_tier,original_ask:r.original_ask
     };
   });
@@ -455,27 +459,55 @@ function process(){
 document.getElementById('run-btn').addEventListener('click',()=>{try{process();}catch(e){showErr('Processing error: '+e.message);}});
 
 function getFileStem(){return(document.querySelector('.sc-code')?.value.trim()||'output').toLowerCase();}
-function dlCSV(data,filename){
+
+function dlCSV(data, filename){
   const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([Papa.unparse(data)],{type:'text/csv'}));
+  a.href=URL.createObjectURL(new Blob([Papa.unparse(data,{quotes:true})],{type:'text/csv'}));
   a.download=filename; a.click();
 }
+
+function dlXLSX(data, filename){
+  if(!data||!data.length) return;
+  const ws=XLSX.utils.json_to_sheet(data);
+  const zipCol=Object.keys(data[0]).indexOf('zip');
+  if(zipCol>=0){
+    const col=XLSX.utils.encode_col(zipCol);
+    data.forEach((_,i)=>{
+      const cell=ws[col+(i+2)];
+      if(cell){cell.t='s';cell.z='@';}
+    });
+  }
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Sheet1');
+  XLSX.writeFile(wb,filename);
+}
+
+function removedRowsData(){
+  if(!removedRows||!removedRows.length) return null;
+  return removedRows.map(r=>({
+    first_name:proper(r.first_name),last_name:proper(r.last_name),
+    address:r.address,city:r.city,state:r.state,zip:padZip(r.zip||''),
+    original_ask:r.original_ask,drop_reason:r.drop_reason,
+    matched_first_name:r.matched_first_name||'',matched_last_name:r.matched_last_name||'',
+    matched_address:r.matched_address||'',matched_city:r.matched_city||'',matched_state:r.matched_state||''
+  }));
+}
+
 document.getElementById('dl-btn').addEventListener('click',()=>{
   if(!outputRows) return;
-  dlCSV(outputRows,getFileStem()+'_print_ready_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.csv');
+  dlCSV(outputRows, getFileStem()+'_print_ready_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.csv');
+});
+document.getElementById('dl-btn-xlsx').addEventListener('click',()=>{
+  if(!outputRows) return;
+  dlXLSX(outputRows, getFileStem()+'_print_ready_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.xlsx');
 });
 document.getElementById('dl-removed-btn').addEventListener('click',()=>{
-  if(!removedRows||!removedRows.length) return;
-  dlCSV(removedRows.map(r=>({
-    first_name:proper(r.first_name),last_name:proper(r.last_name),
-    address:r.address,city:r.city,state:r.state,zip:r.zip||'',
-    original_ask:r.original_ask,drop_reason:r.drop_reason,
-    matched_first_name:r.matched_first_name||'',
-    matched_last_name:r.matched_last_name||'',
-    matched_address:r.matched_address||'',
-    matched_city:r.matched_city||'',
-    matched_state:r.matched_state||''
-  })),getFileStem()+'_removed_rows_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.csv');
+  const data=removedRowsData(); if(!data) return;
+  dlCSV(data, getFileStem()+'_removed_rows_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.csv');
+});
+document.getElementById('dl-removed-btn-xlsx').addEventListener('click',()=>{
+  const data=removedRowsData(); if(!data) return;
+  dlXLSX(data, getFileStem()+'_removed_rows_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.xlsx');
 });
 </script>
 </body>
