@@ -14,6 +14,7 @@ h1{font-size:20px;font-weight:600;margin-bottom:0.25rem}
 .label{font-size:12px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px}
 .drop{border:1.5px dashed #ccc;border-radius:10px;padding:1.25rem;text-align:center;cursor:pointer;transition:background 0.15s;position:relative}
 .drop:hover{background:#f5f5f3}
+.drop.dragover{background:#eef4ff;border-color:#7a9cc6}
 .drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 .drop-icon{font-size:18px;margin-bottom:5px;color:#999}
 .drop-label{font-size:13px;color:#666}
@@ -40,6 +41,7 @@ h1{font-size:20px;font-weight:600;margin-bottom:0.25rem}
 .dl-btn:hover{background:#f5f5f3}
 .dl-btn.secondary{color:#999;margin-top:8px}
 .error{background:#fff0f0;color:#c0392b;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:1rem;border:0.5px solid #f5c6c6}
+.warn{background:#fff8e6;color:#8a6d1a;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:1rem;border:0.5px solid #f0dfa8}
 .hidden{display:none}
 .sc-input{font-size:13px;padding:7px 10px;border-radius:8px;border:0.5px solid #ccc;background:#fff;color:#1a1a1a}
 </style>
@@ -52,9 +54,9 @@ h1{font-size:20px;font-weight:600;margin-bottom:0.25rem}
   <div class="section">
     <div class="label">Moosehead list <span style="font-size:11px;color:#aaa;font-weight:400;text-transform:none;letter-spacing:0">(required)</span></div>
     <div class="drop">
-      <input type="file" accept=".csv" id="main-file">
+      <input type="file" accept=".csv,.xlsx,.xls" id="main-file">
       <div class="drop-icon">↑</div>
-      <div class="drop-label"><strong>Upload CSV</strong> — must have first_name, last_name, address, city, state, zip, ask</div>
+      <div class="drop-label"><strong>Upload CSV or XLSX</strong> — must have first_name, last_name, address, city, state, zip, ask</div>
     </div>
     <div class="file-set hidden" id="main-set">
       <span class="file-name" id="main-name"></span>
@@ -65,12 +67,15 @@ h1{font-size:20px;font-weight:600;margin-bottom:0.25rem}
   <div class="section">
     <div class="label">Suppression lists <span style="font-size:11px;color:#aaa;font-weight:400;text-transform:none;letter-spacing:0">(optional — upload as many as needed)</span></div>
     <div class="drop">
-      <input type="file" accept=".csv" id="sup-file" multiple>
+      <input type="file" accept=".csv,.xlsx,.xls" id="sup-file" multiple>
       <div class="drop-icon">↑</div>
-      <div class="drop-label"><strong>Upload suppression file(s)</strong> — must have first_name, last_name, address, city, state</div>
+      <div class="drop-label"><strong>Upload suppression file(s)</strong> — CSV or XLSX with first_name, last_name, address, city, state</div>
     </div>
     <div id="sup-file-list" style="margin-top:8px;display:flex;flex-direction:column;gap:6px"></div>
   </div>
+
+  <div class="error hidden" id="error-box"></div>
+  <div class="warn hidden" id="warn-box"></div>
 
   <hr class="divider">
 
@@ -166,8 +171,6 @@ h1{font-size:20px;font-weight:600;margin-bottom:0.25rem}
 
   <hr class="divider">
 
-  <div class="error hidden" id="error-box"></div>
-
   <div id="results" class="hidden" style="margin-bottom:1rem">
     <div class="stats">
       <div class="stat"><div class="stat-n" id="s-input">—</div><div class="stat-l">input rows</div></div>
@@ -239,11 +242,99 @@ function askTier(val){
 function padId(prefix, n, total){
   return prefix+'-'+n.toString().padStart(Math.max(5,total.toString().length),'0');
 }
-function parseCSV(file, cb){
-  Papa.parse(file,{header:true,skipEmptyLines:true,dynamicTyping:false,
-    transformHeader:h=>h.trim().toLowerCase().replace(/\s+/g,'_'),
-    complete:r=>cb(null,r.data),error:e=>cb(e)});
+
+// ---- File parsing ----------------------------------------------------------
+// Routes each file to the right parser by content, not extension:
+// files that start with the ZIP magic bytes ("PK") are xlsx/xls and go through
+// SheetJS; everything else goes through PapaParse. This fixes the bug where an
+// xlsx uploaded as a suppression list was fed to PapaParse, parsed as binary
+// garbage (arbitrary row counts, unusable keys), and silently matched nothing.
+function normalizeHeader(h){ return h.toString().trim().toLowerCase().replace(/\s+/g,'_'); }
+
+// ---- Column aliases --------------------------------------------------------
+// Map common header variants onto the canonical names the tool uses, so files
+// with e.g. address1 / zipcode / hpc don't get rejected on naming alone.
+const COLUMN_ALIASES = {
+  first_name:['first_name','firstname','fname','first'],
+  last_name:['last_name','lastname','lname','last'],
+  address:['address','address1','addr','addr1','street','street_address','mailing_address'],
+  city:['city','town'],
+  state:['state','st'],
+  zip:['zip','zip_code','zipcode','postal_code','postalcode'],
+  ask:['ask','ask1','ask_amount','original_ask','hpc','highest_previous_contribution','max_gift','largest_gift','highest_gift'],
+};
+function applyAliases(data){
+  if(!data.length) return data;
+  const have = new Set(Object.keys(data[0]));
+  const mapping = {}; // canonical -> source header actually present
+  for(const [canon, aliases] of Object.entries(COLUMN_ALIASES)){
+    if(have.has(canon)) continue;
+    const found = aliases.find(a=>have.has(a));
+    if(found) mapping[canon] = found;
+  }
+  const hasAddr2 = have.has('address2') && !have.has('address');
+  if(Object.keys(mapping).length===0 && !hasAddr2) return data;
+  return data.map(row=>{
+    const out = Object.assign({}, row);
+    for(const [canon, src] of Object.entries(mapping)) out[canon] = row[src];
+    // If the street line came from address1 and an address2 exists, append it
+    // so apartment/unit lines aren't lost from the dedup key or the output.
+    if(mapping.address==='address1' && row.address2){
+      out.address = (out.address+' '+row.address2).trim();
+    }
+    return out;
+  });
 }
+
+function parseFile(file, cb){
+  const headSlice = file.slice(0, 4);
+  const headReader = new FileReader();
+  headReader.onload = () => {
+    const bytes = new Uint8Array(headReader.result);
+    const isZip = bytes.length >= 2 && bytes[0] === 0x50 && bytes[1] === 0x4B; // "PK"
+    const looksXlsx = isZip || /\.(xlsx|xls)$/i.test(file.name);
+    if(looksXlsx){
+      const reader = new FileReader();
+      reader.onload = e => {
+        try{
+          const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          const raw = XLSX.utils.sheet_to_json(ws, {defval:'', raw:false});
+          const data = applyAliases(raw.map(row => {
+            const out = {};
+            for(const k in row) out[normalizeHeader(k)] = row[k];
+            return out;
+          }));
+          cb(null, data);
+        }catch(err){ cb(new Error('Could not parse '+file.name+' as a spreadsheet: '+err.message)); }
+      };
+      reader.onerror = () => cb(new Error('Could not read '+file.name));
+      reader.readAsArrayBuffer(file);
+    } else {
+      Papa.parse(file,{header:true,skipEmptyLines:true,dynamicTyping:false,
+        transformHeader:normalizeHeader,
+        complete:r=>cb(null,applyAliases(r.data)),error:e=>cb(e)});
+    }
+  };
+  headReader.onerror = () => cb(new Error('Could not read '+file.name));
+  headReader.readAsArrayBuffer(headSlice);
+}
+
+// ---- Header validation -----------------------------------------------------
+// A parse that "succeeds" on the wrong kind of file produces rows without the
+// required columns. Catch that loudly instead of matching nothing silently.
+function validateHeaders(data, required, label){
+  if(!data || !data.length) return label+' appears to be empty.';
+  const have = new Set(Object.keys(data[0]));
+  const missing = required.filter(f=>!have.has(f));
+  if(missing.length){
+    const found = [...have].slice(0,10).join(', ') || '(none)';
+    return label+' is missing required column(s): '+missing.join(', ')+'. Columns found: '+found+'.';
+  }
+  return null;
+}
+const MAIN_REQUIRED = ['first_name','last_name','address','city','state','zip'];
+const SUP_REQUIRED  = ['first_name','last_name','address','city','state'];
 
 // Source code mode toggle
 function setScMode(mode){
@@ -279,16 +370,58 @@ document.getElementById('add-sc-btn').addEventListener('click',()=>{
   if(scMode==='pct') rebalancePct();
 });
 
-// File uploads
-document.getElementById('main-file').addEventListener('change',function(){
-  if(!this.files[0]) return;
-  parseCSV(this.files[0],(err,data)=>{
+// File uploads — shared handlers used by both the file picker and drag-drop
+function handleMainFile(file){
+  if(!file) return;
+  parseFile(file,(err,data)=>{
     if(err){showErr('Could not parse file: '+err.message);return;}
+    const bad=validateHeaders(data, MAIN_REQUIRED, 'Moosehead list "'+file.name+'"');
+    if(bad){showErr(bad);return;}
+    hideErr();
+    if(!Object.keys(data[0]).includes('ask')){
+      showWarn('No ask column found in "'+file.name+'" (looked for ask, ask1, hpc, max_gift and similar) — every row will default to the lowest ask tier ($25/$50/$75). Add an ask column if that\'s not what you want.');
+    } else { hideWarn(); }
     mainData=data;
-    document.getElementById('main-name').textContent=this.files[0].name+' ('+data.length.toLocaleString()+' rows)';
+    document.getElementById('main-name').textContent=file.name+' ('+data.length.toLocaleString()+' rows)';
     document.getElementById('main-set').classList.remove('hidden');
     checkReady();
   });
+}
+function handleSupFiles(fileList){
+  Array.from(fileList).forEach(file=>{
+    parseFile(file,(err,data)=>{
+      if(err){showErr('Could not parse '+file.name+': '+err.message);return;}
+      const bad=validateHeaders(data, SUP_REQUIRED, 'Suppression file "'+file.name+'"');
+      if(bad){showErr(bad);return;}
+      hideErr();
+      supFiles.push(data);
+      const row=document.createElement('div');
+      row.className='file-set'; row.dataset.idx=supFiles.length-1;
+      row.innerHTML=`<span class="file-name">${file.name} (${data.length.toLocaleString()} rows)</span><button class="clear-btn" onclick="removeSup(this)">×</button>`;
+      document.getElementById('sup-file-list').appendChild(row);
+    });
+  });
+}
+// Explicit drag-drop on the zones — doesn't rely on the browser allowing drops
+// onto a hidden <input type=file>, which enforces accept/multiple rules
+// inconsistently across browsers.
+function wireDropZone(zone, onFiles){
+  ['dragenter','dragover'].forEach(ev=>zone.addEventListener(ev,e=>{
+    e.preventDefault();e.stopPropagation();zone.classList.add('dragover');
+  }));
+  ['dragleave','drop'].forEach(ev=>zone.addEventListener(ev,e=>{
+    e.preventDefault();e.stopPropagation();zone.classList.remove('dragover');
+  }));
+  zone.addEventListener('drop',e=>{
+    if(e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files.length) onFiles(e.dataTransfer.files);
+  });
+}
+wireDropZone(document.getElementById('main-file').closest('.drop'), files=>handleMainFile(files[0]));
+wireDropZone(document.getElementById('sup-file').closest('.drop'), files=>handleSupFiles(files));
+
+document.getElementById('main-file').addEventListener('change',function(){
+  handleMainFile(this.files[0]);
+  this.value='';
 });
 document.getElementById('main-clear').addEventListener('click',()=>{
   mainData=null;
@@ -299,16 +432,7 @@ document.getElementById('main-clear').addEventListener('click',()=>{
   checkReady();
 });
 document.getElementById('sup-file').addEventListener('change',function(){
-  Array.from(this.files).forEach(file=>{
-    parseCSV(file,(err,data)=>{
-      if(err){showErr('Could not parse '+file.name+': '+err.message);return;}
-      supFiles.push(data);
-      const row=document.createElement('div');
-      row.className='file-set'; row.dataset.idx=supFiles.length-1;
-      row.innerHTML=`<span class="file-name">${file.name} (${data.length.toLocaleString()} rows)</span><button class="clear-btn" onclick="removeSup(this)">×</button>`;
-      document.getElementById('sup-file-list').appendChild(row);
-    });
-  });
+  handleSupFiles(this.files);
   this.value='';
 });
 function removeSup(btn){
@@ -318,11 +442,14 @@ function removeSup(btn){
   row.remove();
 }
 function checkReady(){document.getElementById('run-btn').disabled=!mainData;}
-function showErr(msg){const b=document.getElementById('error-box');b.textContent=msg;b.classList.remove('hidden');}
+function showErr(msg){const b=document.getElementById('error-box');b.textContent=msg;b.classList.remove('hidden');b.scrollIntoView({behavior:'smooth',block:'center'});}
+function hideErr(){document.getElementById('error-box').classList.add('hidden');}
+function showWarn(msg){const b=document.getElementById('warn-box');b.textContent=msg;b.classList.remove('hidden');}
+function hideWarn(){document.getElementById('warn-box').classList.add('hidden');}
 
 // Process
 function process(){
-  document.getElementById('error-box').classList.add('hidden');
+  hideErr(); hideWarn();
   const rows=mainData.map(r=>Object.assign({},r));
   const idPrefix=document.getElementById('id-prefix').value.trim()||'ID';
   const maxRowsVal=document.getElementById('max-rows').value;
@@ -406,6 +533,12 @@ function process(){
       return true;
     });
     suppressed=deduped.length-final.length;
+    // Guardrail: suppression lists loaded but nothing matched is almost always
+    // a file problem, not a real result. Say so instead of showing a quiet 0.
+    if(suppressed===0){
+      const supRowCount=allSup.length;
+      showWarn('Suppression lists loaded ('+supRowCount.toLocaleString()+' rows) but 0 records matched. That usually means the wrong file, wrong columns, or a formatting mismatch — spot-check a few names that should overlap before trusting this output.');
+    }
   }
 
   if(sortBy==='ask3') final.sort((a,b)=>askTier(b.original_ask).ask3-askTier(a.original_ask).ask3);
