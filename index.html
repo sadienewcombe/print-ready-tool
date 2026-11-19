@@ -51,9 +51,9 @@
   <div class="section">
     <div class="label">Moosehead list <span style="font-size:11px;color:#aaa;font-weight:400">(required)</span></div>
     <div class="drop" id="main-drop">
-      <input type="file" accept=".csv" id="main-file">
+      <input type="file" accept=".csv,.xlsx,.xls" id="main-file">
       <div class="drop-icon">↑</div>
-      <div class="drop-label"><strong>Upload CSV</strong> — must have first_name, last_name, address, city, state, zip, ask</div>
+      <div class="drop-label"><strong>Upload CSV or Excel</strong> — must have first_name, last_name, address, city, state, zip, ask</div>
     </div>
     <div class="file-set hidden" id="main-set">
       <span class="file-name" id="main-name"></span>
@@ -64,9 +64,9 @@
   <div class="section">
     <div class="label">Suppression lists <span class="optional-tag">(optional — upload as many as needed)</span></div>
     <div class="drop" id="sup-drop">
-      <input type="file" accept=".csv" id="sup-file" multiple>
+      <input type="file" accept=".csv,.xlsx,.xls" id="sup-file" multiple>
       <div class="drop-icon">↑</div>
-      <div class="drop-label"><strong>Upload suppression file(s)</strong> — must have first_name, last_name, address, city, state</div>
+      <div class="drop-label"><strong>Upload suppression file(s)</strong> — CSV or Excel, must have first_name, last_name, address, city, state</div>
     </div>
     <div id="sup-file-list" style="margin-top:8px;display:flex;flex-direction:column;gap:6px"></div>
   </div>
@@ -169,17 +169,52 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 let mainData = null, supFiles = [], outputRows = null, removedRows = null;
+
+const normHeader = h => String(h).trim().toLowerCase().replace(/\s+/g,'_');
 
 function parseCSV(file, cb) {
   Papa.parse(file, {
     header: true, skipEmptyLines: true,
-    transformHeader: h => h.trim().toLowerCase().replace(/\s+/g,'_'),
+    transformHeader: normHeader,
     complete: r => cb(null, r.data),
     error: e => cb(e)
   });
 }
+
+// Excel: reads the first sheet that has data. raw:false keeps cells as displayed text
+// (e.g. "$500.00"), which toNum() handles; headers get the same normalization as CSV.
+function parseExcel(file, cb) {
+  const fr = new FileReader();
+  fr.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      for (const sn of wb.SheetNames) {
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], { defval: '', raw: false });
+        if (!rows.length) continue;
+        const data = rows.map(r => {
+          const o = {};
+          for (const k in r) o[normHeader(k)] = r[k];
+          return o;
+        }).filter(r => Object.values(r).some(v => String(v).trim() !== ''));
+        return cb(null, data, sn);
+      }
+      cb(new Error('no sheets with data'));
+    } catch (err) { cb(err); }
+  };
+  fr.onerror = () => cb(fr.error || new Error('read failed'));
+  fr.readAsArrayBuffer(file);
+}
+
+function parseFile(file, cb) {
+  if (/\.csv$/i.test(file.name)) return parseCSV(file, cb);
+  if (/\.xlsx?$/i.test(file.name)) return parseExcel(file, cb);
+  cb(new Error('unsupported file type — use .csv, .xlsx, or .xls'));
+}
+const fileLabel = (file, data, sheet) =>
+  file.name + (sheet ? ' [' + sheet + ']' : '') + ' (' + data.length.toLocaleString() + ' rows)';
 
 function norm(s) { return (s||'').toString().trim().toUpperCase(); }
 // Strip punctuation from address before keying — catches "311 E. Superior St." == "311 E Superior St"
@@ -202,8 +237,19 @@ function key4(r) {
   return normAddr(r.address)+'|'+zip;
 }
 
+// Destring currency: strips $, commas, spaces; "(25.00)" → -25. Blank/garbage → 0.
+// Without this, "$500.00" → NaN → 0 (lowest tier) and "1,000.00" → 1.
+function toNum(val) {
+  if (val == null) return 0;
+  let s = String(val).trim();
+  const neg = /^\(.*\)$/.test(s);
+  s = s.replace(/[$,\s()]/g, '');
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : (neg ? -n : n);
+}
+
 function askTier(val) {
-  const v = parseFloat(val)||0;
+  const v = toNum(val);
   if(v >= 3500) return {ask1:3500,ask2:5000,ask3:7000,ask_tier:'highest'};
   if(v >= 1000) return {ask1:1000,ask2:1500,ask3:2000,ask_tier:'high'};
   if(v >= 100)  return {ask1:100,ask2:250,ask3:500,ask_tier:'middle'};
@@ -239,7 +285,7 @@ function process() {
     const addr = norm(r.address||'');
     const city = norm(r.city||'');
     const state = norm(r.state||'');
-    const ask = r.ask||r.ask1||'0';
+    const ask = toNum(r.ask||r.ask1||'0');
     return {first_name:fn,last_name:ln,address:addr,city,state,zip,original_ask:ask};
   });
 
@@ -308,9 +354,9 @@ function process() {
   const priorityStates = priorityRaw.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
 
   if(sortBy==='ask3'){
-    final.sort((a,b)=>(parseFloat(askTier(b.original_ask).ask3)||0)-(parseFloat(askTier(a.original_ask).ask3)||0));
+    final.sort((a,b)=>askTier(b.original_ask).ask3-askTier(a.original_ask).ask3);
   } else if(sortBy==='ask1'){
-    final.sort((a,b)=>(parseFloat(askTier(b.original_ask).ask1)||0)-(parseFloat(askTier(a.original_ask).ask1)||0));
+    final.sort((a,b)=>askTier(b.original_ask).ask1-askTier(a.original_ask).ask1);
   }
 
   if(priorityStates.length > 0){
@@ -386,10 +432,10 @@ function wireUpload(inputId, dropVar, setId, nameId) {
   document.getElementById(inputId).addEventListener('change', function(){
     if(!this.files[0]) return;
     const file = this.files[0];
-    parseCSV(file,(err,data)=>{
+    parseFile(file,(err,data,sheet)=>{
       if(err){showErr('Could not parse '+file.name+': '+err.message);return;}
       if(dropVar==='main') mainData=data; else supData=data;
-      document.getElementById(nameId).textContent = file.name+' ('+data.length.toLocaleString()+' rows)';
+      document.getElementById(nameId).textContent = fileLabel(file, data, sheet);
       document.getElementById(setId).classList.remove('hidden');
       checkReady();
     });
@@ -413,14 +459,18 @@ document.getElementById('sup-file').addEventListener('change', function(){
   if(!files.length) return;
   let loaded = 0;
   files.forEach(file => {
-    parseCSV(file, (err, data) => {
-      if(err){ showErr('Could not parse '+file.name+': '+err.message); return; }
+    parseFile(file, (err, data, sheet) => {
+      if(err){
+        showErr('Could not parse '+file.name+': '+err.message);
+        if(++loaded === files.length) this.value = '';
+        return;
+      }
       supFiles.push(data);
       const list = document.getElementById('sup-file-list');
       const row = document.createElement('div');
       row.className = 'file-set';
       row.dataset.idx = supFiles.length - 1;
-      row.innerHTML = `<span class="file-name">${file.name} (${data.length.toLocaleString()} rows)</span><button class="clear-btn" onclick="removeSup(this)">×</button>`;
+      row.innerHTML = `<span class="file-name">${fileLabel(file, data, sheet)}</span><button class="clear-btn" onclick="removeSup(this)">×</button>`;
       list.appendChild(row);
       loaded++;
       if(loaded === files.length) this.value = '';
